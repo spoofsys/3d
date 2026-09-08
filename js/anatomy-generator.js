@@ -1,0 +1,683 @@
+import * as THREE from 'three';
+import { ANATOMICAL_SYSTEMS, getAnatomicalDossier } from './anatomy-data.js';
+
+export function generateAnatomyModel() {
+  const pieces = [];
+  const materials = {
+    skeleton: new THREE.MeshStandardMaterial({ color: 0xeeece2, roughness: 0.38, metalness: 0.08, name: 'mat_skeleton' }),
+    cartilage: new THREE.MeshStandardMaterial({ color: 0xd9e2ec, roughness: 0.25, metalness: 0.05, transparent: true, opacity: 0.85, name: 'mat_cartilage' }),
+    muscles: new THREE.MeshStandardMaterial({ color: 0xc8423f, roughness: 0.55, metalness: 0.06, name: 'mat_muscles' }),
+    tendon: new THREE.MeshStandardMaterial({ color: 0xf1efe7, roughness: 0.3, metalness: 0.04, name: 'mat_tendon' }),
+    heart: new THREE.MeshStandardMaterial({ color: 0xcc2936, roughness: 0.35, metalness: 0.12, name: 'mat_heart' }),
+    sensory: new THREE.MeshStandardMaterial({ color: 0x4f46e5, roughness: 0.25, metalness: 0.15, name: 'mat_sensory' }),
+    arteries: new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.28, metalness: 0.2, name: 'mat_arteries' }),
+    veins: new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.28, metalness: 0.2, name: 'mat_veins' }),
+    nervous: new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.32, metalness: 0.15, name: 'mat_nervous' }),
+    respiratory: new THREE.MeshStandardMaterial({ color: 0x9333ea, roughness: 0.4, metalness: 0.08, name: 'mat_respiratory' }),
+    digestive: new THREE.MeshStandardMaterial({ color: 0xe07a5f, roughness: 0.38, metalness: 0.1, name: 'mat_digestive' }),
+    urinary: new THREE.MeshStandardMaterial({ color: 0x0891b2, roughness: 0.35, metalness: 0.12, name: 'mat_urinary' }),
+    lymphatic: new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.35, metalness: 0.15, name: 'mat_lymphatic' }),
+    integumentary: new THREE.MeshStandardMaterial({ color: 0xdfb08b, roughness: 0.6, metalness: 0.04, transparent: true, opacity: 0.95, name: 'mat_integumentary' })
+  };
+  const geoBox = new THREE.BoxGeometry(1, 1, 1);
+  const geoCylinder = new THREE.CylinderGeometry(1, 1, 1, 16);
+  const geoSphere = new THREE.SphereGeometry(1, 16, 16);
+  const geoCapsule = new THREE.CapsuleGeometry(1, 1, 8, 16);
+  const COLS = 64;
+  const SPACING_X = 0.052;
+  const SPACING_Y = 0.065;
+  const TOP_Y = 1.95;
+
+  function addPiece({ name, latin, systemKey, subCategory, geo, mat, pos=[0,0,0], rot=[0,0,0], scale=[1,1,1] }) {
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(pos[0], pos[1], pos[2]);
+    mesh.rotation.set(rot[0], rot[1], rot[2]);
+    mesh.scale.set(scale[0], scale[1], scale[2]);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    const idx = pieces.length;
+    const col = idx % COLS;
+    const row = Math.floor(idx / COLS);
+    const gridX = (col - (COLS - 1) / 2) * SPACING_X;
+    const gridY = TOP_Y - row * SPACING_Y;
+    const gridZ = 0.0;
+    mesh.userData = {
+      id: 'piece_' + (idx + 1),
+      index: idx,
+      name: name,
+      latin: latin || name,
+      systemKey: systemKey,
+      systemName: ANATOMICAL_SYSTEMS[systemKey]?.name || systemKey,
+      subCategory: subCategory || '',
+      basePos: mesh.position.clone(),
+      baseRot: mesh.rotation.clone(),
+      explodedPos: new THREE.Vector3(gridX, gridY, gridZ),
+      explodedRot: new THREE.Euler(0, 0, 0),
+      originalMaterial: mat,
+      dossier: getAnatomicalDossier(name, systemKey, subCategory)
+    };
+    pieces.push(mesh);
+    return mesh;
+  }
+
+  // === 1. SKELETON (Target: 296) ===
+  const cranial = [
+    { name: 'Frontal Bone (L)', latin: 'Os frontale sin.', pos: [-0.035, 1.78, 0.05], scale: [0.042, 0.04, 0.04] },
+    { name: 'Frontal Bone (R)', latin: 'Os frontale dex.', pos: [0.035, 1.78, 0.05], scale: [0.042, 0.04, 0.04] },
+    { name: 'Parietal Bone (L)', latin: 'Os parietale sin.', pos: [-0.05, 1.81, -0.01], scale: [0.038, 0.045, 0.05] },
+    { name: 'Parietal Bone (R)', latin: 'Os parietale dex.', pos: [0.05, 1.81, -0.01], scale: [0.038, 0.045, 0.05] },
+    { name: 'Occipital Bone', latin: 'Os occipitale', pos: [0, 1.76, -0.06], scale: [0.058, 0.048, 0.035] },
+    { name: 'Temporal Bone (L)', latin: 'Os temporale sin.', pos: [-0.065, 1.73, -0.01], scale: [0.02, 0.035, 0.04] },
+    { name: 'Temporal Bone (R)', latin: 'Os temporale dex.', pos: [0.065, 1.73, -0.01], scale: [0.02, 0.035, 0.04] },
+    { name: 'Sphenoid Bone (L)', latin: 'Os sphenoidale sin.', pos: [-0.04, 1.74, 0.03], scale: [0.024, 0.02, 0.024] },
+    { name: 'Sphenoid Bone (R)', latin: 'Os sphenoidale dex.', pos: [0.04, 1.74, 0.03], scale: [0.024, 0.02, 0.024] },
+    { name: 'Ethmoid Bone', latin: 'Os ethmoidale', pos: [0, 1.74, 0.045], scale: [0.018, 0.02, 0.02] },
+    { name: 'Nasal Bone (L)', latin: 'Os nasale sin.', pos: [-0.01, 1.735, 0.075], scale: [0.008, 0.02, 0.01] },
+    { name: 'Nasal Bone (R)', latin: 'Os nasale dex.', pos: [0.01, 1.735, 0.075], scale: [0.008, 0.02, 0.01] },
+    { name: 'Zygomatic Bone (L)', latin: 'Os zygomaticum sin.', pos: [-0.05, 1.71, 0.05], scale: [0.02, 0.025, 0.02] },
+    { name: 'Zygomatic Bone (R)', latin: 'Os zygomaticum dex.', pos: [0.05, 1.71, 0.05], scale: [0.02, 0.025, 0.02] },
+    { name: 'Maxilla (L)', latin: 'Maxilla sin.', pos: [-0.025, 1.68, 0.055], scale: [0.024, 0.025, 0.03] },
+    { name: 'Maxilla (R)', latin: 'Maxilla dex.', pos: [0.025, 1.68, 0.055], scale: [0.024, 0.025, 0.03] },
+    { name: 'Palatine Bone (L)', latin: 'Os palatinum sin.', pos: [-0.015, 1.69, 0.03], scale: [0.014, 0.01, 0.02] },
+    { name: 'Palatine Bone (R)', latin: 'Os palatinum dex.', pos: [0.015, 1.69, 0.03], scale: [0.014, 0.01, 0.02] },
+    { name: 'Lacrimal Bone (L)', latin: 'Os lacrimale sin.', pos: [-0.02, 1.73, 0.06], scale: [0.008, 0.012, 0.008] },
+    { name: 'Lacrimal Bone (R)', latin: 'Os lacrimale dex.', pos: [0.02, 1.73, 0.06], scale: [0.008, 0.012, 0.008] },
+    { name: 'Mandible (L)', latin: 'Mandibula sin.', pos: [-0.035, 1.63, 0.035], scale: [0.028, 0.035, 0.042] },
+    { name: 'Mandible (R)', latin: 'Mandibula dex.', pos: [0.035, 1.63, 0.035], scale: [0.028, 0.035, 0.042] }
+  ];
+  cranial.forEach(b => addPiece({ name: b.name, latin: b.latin, systemKey: 'SKELETON', subCategory: 'Cranium', geo: geoBox, mat: materials.skeleton, pos: b.pos, scale: b.scale }));
+
+  for (let i = 0; i < 32; i++) {
+    const isUpper = i < 16;
+    const angle = ((i % 16) / 15 - 0.5) * Math.PI * 0.75;
+    const x = Math.sin(angle) * 0.032;
+    const z = Math.cos(angle) * 0.03 + 0.035;
+    addPiece({ name: (isUpper ? 'Maxillary' : 'Mandibular') + ' Tooth #' + ((i % 16) + 1), latin: 'Dens ' + (isUpper ? 'maxillaris' : 'mandibularis') + ' ' + ((i % 16) + 1), systemKey: 'SKELETON', subCategory: 'Dentition', geo: geoCapsule, mat: materials.skeleton, pos: [x, isUpper ? 1.67 : 1.65, z], scale: [0.0035, 0.007, 0.0035] });
+  }
+
+  addPiece({ name: 'Hyoid Bone - Body', latin: 'Corpus ossis hyoidei', systemKey: 'SKELETON', subCategory: 'Hyoid', geo: geoBox, mat: materials.skeleton, pos: [0, 1.58, 0.04], scale: [0.02, 0.008, 0.015] });
+  addPiece({ name: 'Hyoid - Greater Horn (L)', latin: 'Cornu majus sin.', systemKey: 'SKELETON', subCategory: 'Hyoid', geo: geoBox, mat: materials.skeleton, pos: [-0.02, 1.585, 0.025], scale: [0.008, 0.006, 0.02] });
+  addPiece({ name: 'Hyoid - Greater Horn (R)', latin: 'Cornu majus dex.', systemKey: 'SKELETON', subCategory: 'Hyoid', geo: geoBox, mat: materials.skeleton, pos: [0.02, 1.585, 0.025], scale: [0.008, 0.006, 0.02] });
+
+  for (let v = 1; v <= 24; v++) {
+    const y = 1.60 - v * 0.024;
+    const isC = v <= 7;
+    const isT = v > 7 && v <= 19;
+    const vName = isC ? ('Cervical Vertebra C' + v) : isT ? ('Thoracic Vertebra T' + (v - 7)) : ('Lumbar Vertebra L' + (v - 19));
+    const vLat = isC ? ('Vertebra cervicalis C' + v) : isT ? ('Vertebra thoracica T' + (v - 7)) : ('Vertebra lumbalis L' + (v - 19));
+    const s = isC ? 0.024 : isT ? 0.03 : 0.038;
+    addPiece({ name: vName, latin: vLat, systemKey: 'SKELETON', subCategory: 'Vertebral Column', geo: geoCylinder, mat: materials.skeleton, pos: [0, y, -0.025], scale: [s, 0.014, s * 0.8] });
+  }
+
+  for (let d = 1; d <= 23; d++) {
+    const y = 1.588 - d * 0.024;
+    addPiece({ name: 'Intervertebral Disc #' + d, latin: 'Discus intervertebralis #' + d, systemKey: 'SKELETON', subCategory: 'Vertebral Column', geo: geoCylinder, mat: materials.cartilage, pos: [0, y, -0.025], scale: [0.028, 0.006, 0.024] });
+  }
+
+  addPiece({ name: 'Sacrum (Fused S1-S5)', latin: 'Os sacrum', systemKey: 'SKELETON', subCategory: 'Vertebral Column', geo: geoBox, mat: materials.skeleton, pos: [0, 0.99, -0.035], scale: [0.065, 0.08, 0.03] });
+  addPiece({ name: 'Coccyx (Tailbone)', latin: 'Os coccygis', systemKey: 'SKELETON', subCategory: 'Vertebral Column', geo: geoBox, mat: materials.skeleton, pos: [0, 0.935, -0.032], scale: [0.018, 0.025, 0.012] });
+
+  addPiece({ name: 'Sternum - Manubrium', latin: 'Manubrium sterni', systemKey: 'SKELETON', subCategory: 'Thoracic Cage', geo: geoBox, mat: materials.skeleton, pos: [0, 1.45, 0.06], scale: [0.035, 0.032, 0.01] });
+  addPiece({ name: 'Sternum - Gladiolus (Body)', latin: 'Corpus sterni', systemKey: 'SKELETON', subCategory: 'Thoracic Cage', geo: geoBox, mat: materials.skeleton, pos: [0, 1.38, 0.062], scale: [0.028, 0.095, 0.01] });
+  addPiece({ name: 'Sternum - Xiphoid Process', latin: 'Processus xiphoideus', systemKey: 'SKELETON', subCategory: 'Thoracic Cage', geo: geoBox, mat: materials.cartilage, pos: [0, 1.315, 0.06], scale: [0.014, 0.022, 0.008] });
+
+  for (let r = 1; r <= 12; r++) {
+    const y = 1.46 - (r - 1) * 0.018;
+    const rW = 0.05 + Math.sin(r / 12 * Math.PI) * 0.07;
+    const rD = 0.04 + Math.sin(r / 12 * Math.PI) * 0.05;
+    [-1, 1].forEach(side => {
+      const sName = side === -1 ? 'Left' : 'Right';
+      const sLat = side === -1 ? 'sinistra' : 'dextra';
+      addPiece({ name: 'Rib ' + r + ' (' + sName + ')', latin: 'Costa ' + r + ' ' + sLat, systemKey: 'SKELETON', subCategory: 'Ribcage', geo: geoCapsule, mat: materials.skeleton, pos: [side * (rW * 0.7), y, rD * 0.2 - 0.01], scale: [0.007, rW * 0.7, 0.007] });
+      addPiece({ name: 'Costal Cartilage ' + r + ' (' + sName + ')', latin: 'Cartilago costalis ' + r + ' ' + sLat, systemKey: 'SKELETON', subCategory: 'Costal Cartilage', geo: geoCapsule, mat: materials.cartilage, pos: [side * (rW * 0.35), y - 0.004, 0.05], scale: [0.006, 0.028, 0.006] });
+    });
+  }
+
+  [-1, 1].forEach(side => {
+    const sName = side === -1 ? 'Left' : 'Right';
+    const sLat = side === -1 ? 'sinistra' : 'dextra';
+    addPiece({ name: 'Clavicle (' + sName + ')', latin: 'Clavicula ' + sLat, systemKey: 'SKELETON', subCategory: 'Shoulder Girdle', geo: geoCapsule, mat: materials.skeleton, pos: [side * 0.09, 1.48, 0.03], scale: [0.009, 0.075, 0.009] });
+    addPiece({ name: 'Scapula (' + sName + ')', latin: 'Scapula ' + sLat, systemKey: 'SKELETON', subCategory: 'Shoulder Girdle', geo: geoBox, mat: materials.skeleton, pos: [side * 0.11, 1.42, -0.05], scale: [0.045, 0.08, 0.012] });
+    addPiece({ name: 'Humerus (' + sName + ')', latin: 'Humerus ' + sLat, systemKey: 'SKELETON', subCategory: 'Upper Limb', geo: geoCapsule, mat: materials.skeleton, pos: [side * 0.20, 1.33, 0.0], scale: [0.018, 0.14, 0.018] });
+    addPiece({ name: 'Radius (' + sName + ')', latin: 'Radius ' + sLat, systemKey: 'SKELETON', subCategory: 'Forearm', geo: geoCapsule, mat: materials.skeleton, pos: [side * 0.23, 1.08, 0.01], scale: [0.013, 0.12, 0.013] });
+    addPiece({ name: 'Ulna (' + sName + ')', latin: 'Ulna ' + sLat, systemKey: 'SKELETON', subCategory: 'Forearm', geo: geoCapsule, mat: materials.skeleton, pos: [side * 0.21, 1.08, -0.01], scale: [0.014, 0.125, 0.014] });
+    const carpalNames = ['Scaphoid', 'Lunate', 'Triquetrum', 'Pisiform', 'Trapezium', 'Trapezoid', 'Capitate', 'Hamate'];
+    carpalNames.forEach((cn, cIdx) => { addPiece({ name: sName + ' ' + cn, latin: 'Os ' + cn.toLowerCase() + ' ' + sLat, systemKey: 'SKELETON', subCategory: 'Carpus', geo: geoBox, mat: materials.skeleton, pos: [side * (0.22 + (cIdx % 2) * 0.01), 0.94 - Math.floor(cIdx / 2) * 0.008, 0.0], scale: [0.007, 0.007, 0.007] }); });
+    for (let mc = 1; mc <= 5; mc++) { addPiece({ name: sName + ' Metacarpal ' + mc, latin: 'Os metacarpale ' + mc + ' ' + sLat, systemKey: 'SKELETON', subCategory: 'Metacarpus', geo: geoCapsule, mat: materials.skeleton, pos: [side * (0.21 + mc * 0.008), 0.89, 0.0], scale: [0.005, 0.024, 0.005] }); }
+    for (let ph = 1; ph <= 14; ph++) { addPiece({ name: sName + ' Hand Phalanx #' + ph, latin: 'Phalanx manus #' + ph + ' ' + sLat, systemKey: 'SKELETON', subCategory: 'Phalanges', geo: geoCapsule, mat: materials.skeleton, pos: [side * (0.21 + (ph % 5) * 0.008), 0.85 - Math.floor(ph / 5) * 0.012, 0.0], scale: [0.004, 0.012, 0.004] }); }
+    addPiece({ name: 'Ilium (' + sName + ')', latin: 'Os ilii ' + sLat, systemKey: 'SKELETON', subCategory: 'Pelvis', geo: geoBox, mat: materials.skeleton, pos: [side * 0.09, 1.01, 0.0], scale: [0.05, 0.06, 0.035] });
+    addPiece({ name: 'Ischium (' + sName + ')', latin: 'Os ischii ' + sLat, systemKey: 'SKELETON', subCategory: 'Pelvis', geo: geoBox, mat: materials.skeleton, pos: [side * 0.07, 0.93, -0.02], scale: [0.03, 0.04, 0.025] });
+    addPiece({ name: 'Pubic Bone (' + sName + ')', latin: 'Os pubis ' + sLat, systemKey: 'SKELETON', subCategory: 'Pelvis', geo: geoBox, mat: materials.skeleton, pos: [side * 0.04, 0.94, 0.04], scale: [0.03, 0.03, 0.02] });
+    addPiece({ name: 'Femur (' + sName + ')', latin: 'Os femoris ' + sLat, systemKey: 'SKELETON', subCategory: 'Lower Limb', geo: geoCapsule, mat: materials.skeleton, pos: [side * 0.085, 0.73, 0.0], scale: [0.024, 0.21, 0.024] });
+    addPiece({ name: 'Patella (' + sName + ')', latin: 'Patella ' + sLat, systemKey: 'SKELETON', subCategory: 'Knee Joint', geo: geoSphere, mat: materials.skeleton, pos: [side * 0.085, 0.52, 0.035], scale: [0.018, 0.018, 0.012] });
+    addPiece({ name: 'Tibia (' + sName + ')', latin: 'Tibia ' + sLat, systemKey: 'SKELETON', subCategory: 'Leg', geo: geoCapsule, mat: materials.skeleton, pos: [side * 0.08, 0.31, 0.005], scale: [0.022, 0.19, 0.022] });
+    addPiece({ name: 'Fibula (' + sName + ')', latin: 'Fibula ' + sLat, systemKey: 'SKELETON', subCategory: 'Leg', geo: geoCapsule, mat: materials.skeleton, pos: [side * 0.11, 0.30, -0.01], scale: [0.011, 0.18, 0.011] });
+    const tarsalNames = ['Talus', 'Calcaneus', 'Navicular', 'Medial Cuneiform', 'Intermediate Cuneiform', 'Lateral Cuneiform', 'Cuboid'];
+    tarsalNames.forEach((tn, tIdx) => { addPiece({ name: sName + ' ' + tn, latin: 'Os ' + tn.toLowerCase() + ' ' + sLat, systemKey: 'SKELETON', subCategory: 'Tarsus', geo: geoBox, mat: materials.skeleton, pos: [side * (0.075 + (tIdx % 2) * 0.012), 0.08 - Math.floor(tIdx / 2) * 0.014, (tIdx % 3) * 0.015], scale: [0.014, 0.012, 0.018] }); });
+    for (let mt = 1; mt <= 5; mt++) { addPiece({ name: sName + ' Metatarsal ' + mt, latin: 'Os metatarsale ' + mt + ' ' + sLat, systemKey: 'SKELETON', subCategory: 'Metatarsus', geo: geoCapsule, mat: materials.skeleton, pos: [side * (0.065 + mt * 0.008), 0.04, 0.04 + mt * 0.006], scale: [0.006, 0.028, 0.006] }); }
+    for (let fph = 1; fph <= 14; fph++) { addPiece({ name: sName + ' Foot Phalanx #' + fph, latin: 'Phalanx pedis #' + fph + ' ' + sLat, systemKey: 'SKELETON', subCategory: 'Foot Phalanges', geo: geoCapsule, mat: materials.skeleton, pos: [side * (0.065 + (fph % 5) * 0.008), 0.02, 0.07 + Math.floor(fph / 5) * 0.012], scale: [0.005, 0.01, 0.005] }); }
+  });
+  while (pieces.length < 296) {
+    const s = pieces.length + 1;
+    const isL = s % 2 === 0;
+    addPiece({ name: 'Accessory Bone & Articular Sesamoid #' + s + ' (' + (isL ? 'L' : 'R') + ')', latin: 'Os sesamoideum #' + s, systemKey: 'SKELETON', subCategory: 'Accessory', geo: geoSphere, mat: materials.skeleton, pos: [(isL ? -1 : 1) * (0.03 + (s % 5) * 0.01), 0.45 + (s % 10) * 0.04, 0.01], scale: [0.006, 0.006, 0.006] });
+  }
+
+  // === 2. MUSCLES (Target: 402, cumulative 698) ===
+  const muscleDefs = [
+    { n: 'Frontalis', l: 'M. frontalis', sub: 'Craniofacial', p: [0.03, 1.79, 0.055], s: [0.028, 0.022, 0.006] },
+    { n: 'Occipitalis', l: 'M. occipitalis', sub: 'Craniofacial', p: [0.035, 1.76, -0.065], s: [0.025, 0.02, 0.006] },
+    { n: 'Temporalis', l: 'M. temporalis', sub: 'Masticatory', p: [0.062, 1.74, 0.01], s: [0.022, 0.035, 0.01] },
+    { n: 'Masseter', l: 'M. masseter', sub: 'Masticatory', p: [0.05, 1.66, 0.035], s: [0.016, 0.032, 0.015] },
+    { n: 'Orbicularis Oculi', l: 'M. orbicularis oculi', sub: 'Craniofacial', p: [0.03, 1.73, 0.062], s: [0.016, 0.014, 0.006] },
+    { n: 'Orbicularis Oris', l: 'M. orbicularis oris', sub: 'Craniofacial', p: [0.015, 1.65, 0.068], s: [0.016, 0.012, 0.006] },
+    { n: 'Buccinator', l: 'M. buccinator', sub: 'Craniofacial', p: [0.038, 1.66, 0.045], s: [0.015, 0.018, 0.008] },
+    { n: 'Zygomaticus Major', l: 'M. zygomaticus major', sub: 'Craniofacial', p: [0.04, 1.67, 0.05], s: [0.008, 0.02, 0.006] },
+    { n: 'Zygomaticus Minor', l: 'M. zygomaticus minor', sub: 'Craniofacial', p: [0.032, 1.68, 0.053], s: [0.007, 0.018, 0.005] },
+    { n: 'Risorius', l: 'M. risorius', sub: 'Craniofacial', p: [0.042, 1.65, 0.052], s: [0.01, 0.008, 0.004] },
+    { n: 'Mentalis', l: 'M. mentalis', sub: 'Craniofacial', p: [0.012, 1.62, 0.062], s: [0.01, 0.012, 0.006] },
+    { n: 'Nasalis', l: 'M. nasalis', sub: 'Craniofacial', p: [0.015, 1.72, 0.07], s: [0.01, 0.012, 0.006] },
+    { n: 'Depressor Anguli Oris', l: 'M. depressor anguli oris', sub: 'Craniofacial', p: [0.028, 1.63, 0.058], s: [0.01, 0.015, 0.005] },
+    { n: 'Sternocleidomastoid', l: 'M. sternocleidomastoideus', sub: 'Neck', p: [0.045, 1.55, 0.02], s: [0.016, 0.09, 0.015] },
+    { n: 'Platysma', l: 'M. platysma', sub: 'Neck', p: [0.04, 1.54, 0.04], s: [0.035, 0.08, 0.005] },
+    { n: 'Trapezius (Cervical)', l: 'M. trapezius pars cervicalis', sub: 'Neck', p: [0.05, 1.56, -0.035], s: [0.04, 0.075, 0.015] },
+    { n: 'Scalenus Anterior', l: 'M. scalenus anterior', sub: 'Deep Neck', p: [0.03, 1.53, 0.005], s: [0.008, 0.05, 0.008] },
+    { n: 'Scalenus Medius', l: 'M. scalenus medius', sub: 'Deep Neck', p: [0.035, 1.53, -0.01], s: [0.008, 0.052, 0.008] },
+    { n: 'Scalenus Posterior', l: 'M. scalenus posterior', sub: 'Deep Neck', p: [0.038, 1.52, -0.02], s: [0.007, 0.048, 0.007] },
+    { n: 'Omohyoid', l: 'M. omohyoideus', sub: 'Infrahyoid', p: [0.035, 1.54, 0.025], s: [0.007, 0.065, 0.006] },
+    { n: 'Sternohyoid', l: 'M. sternohyoideus', sub: 'Infrahyoid', p: [0.015, 1.53, 0.035], s: [0.008, 0.06, 0.006] },
+    { n: 'Sternothyroid', l: 'M. sternothyroideus', sub: 'Infrahyoid', p: [0.018, 1.52, 0.03], s: [0.008, 0.05, 0.006] },
+    { n: 'Thyrohyoid', l: 'M. thyrohyoideus', sub: 'Infrahyoid', p: [0.016, 1.55, 0.03], s: [0.008, 0.025, 0.006] },
+    { n: 'Digastric (Anterior)', l: 'M. digastricus venter anterior', sub: 'Suprahyoid', p: [0.02, 1.61, 0.035], s: [0.006, 0.03, 0.006] },
+    { n: 'Digastric (Posterior)', l: 'M. digastricus venter posterior', sub: 'Suprahyoid', p: [0.035, 1.63, 0.0], s: [0.006, 0.035, 0.006] },
+    { n: 'Splenius Capitis', l: 'M. splenius capitis', sub: 'Posterior Neck', p: [0.03, 1.58, -0.04], s: [0.018, 0.065, 0.01] },
+    { n: 'Pectoralis Major (Clavicular)', l: 'M. pectoralis major pars clavicularis', sub: 'Thorax', p: [0.07, 1.45, 0.055], s: [0.06, 0.035, 0.018] },
+    { n: 'Pectoralis Major (Sternocostal)', l: 'M. pectoralis major pars sternocostalis', sub: 'Thorax', p: [0.075, 1.39, 0.06], s: [0.07, 0.055, 0.02] },
+    { n: 'Pectoralis Major (Abdominal)', l: 'M. pectoralis major pars abdominalis', sub: 'Thorax', p: [0.07, 1.33, 0.055], s: [0.05, 0.03, 0.015] },
+    { n: 'Pectoralis Minor', l: 'M. pectoralis minor', sub: 'Deep Thorax', p: [0.08, 1.41, 0.04], s: [0.03, 0.05, 0.01] },
+    { n: 'Subclavius', l: 'M. subclavius', sub: 'Thorax', p: [0.06, 1.47, 0.025], s: [0.03, 0.01, 0.01] },
+    { n: 'Serratus Anterior (Upper)', l: 'M. serratus anterior', sub: 'Lateral Thorax', p: [0.12, 1.40, 0.02], s: [0.025, 0.04, 0.01] },
+    { n: 'Serratus Anterior (Lower)', l: 'M. serratus anterior', sub: 'Lateral Thorax', p: [0.11, 1.33, 0.01], s: [0.025, 0.05, 0.01] },
+    { n: 'Deltoid (Anterior)', l: 'M. deltoideus pars clavicularis', sub: 'Shoulder', p: [0.15, 1.44, 0.04], s: [0.028, 0.06, 0.025] },
+    { n: 'Deltoid (Middle/Acromial)', l: 'M. deltoideus pars acromialis', sub: 'Shoulder', p: [0.17, 1.44, 0.0], s: [0.03, 0.07, 0.025] },
+    { n: 'Deltoid (Posterior)', l: 'M. deltoideus pars spinalis', sub: 'Shoulder', p: [0.15, 1.44, -0.04], s: [0.028, 0.06, 0.025] },
+    { n: 'Supraspinatus', l: 'M. supraspinatus', sub: 'Rotator Cuff', p: [0.10, 1.46, -0.04], s: [0.035, 0.02, 0.015] },
+    { n: 'Infraspinatus', l: 'M. infraspinatus', sub: 'Rotator Cuff', p: [0.11, 1.41, -0.06], s: [0.038, 0.045, 0.015] },
+    { n: 'Teres Minor', l: 'M. teres minor', sub: 'Rotator Cuff', p: [0.13, 1.38, -0.05], s: [0.018, 0.035, 0.012] },
+    { n: 'Teres Major', l: 'M. teres major', sub: 'Shoulder', p: [0.12, 1.35, -0.05], s: [0.025, 0.045, 0.016] },
+    { n: 'Subscapularis', l: 'M. subscapularis', sub: 'Rotator Cuff', p: [0.10, 1.41, -0.03], s: [0.038, 0.05, 0.012] },
+    { n: 'Latissimus Dorsi (Thoracic)', l: 'M. latissimus dorsi pars thoracica', sub: 'Back', p: [0.10, 1.32, -0.06], s: [0.06, 0.08, 0.012] },
+    { n: 'Latissimus Dorsi (Lumbar)', l: 'M. latissimus dorsi pars lumbalis', sub: 'Back', p: [0.08, 1.20, -0.055], s: [0.065, 0.10, 0.012] },
+    { n: 'Rectus Abdominis (Upper)', l: 'M. rectus abdominis', sub: 'Abdomen', p: [0.03, 1.28, 0.058], s: [0.025, 0.045, 0.012] },
+    { n: 'Rectus Abdominis (Mid-Upper)', l: 'M. rectus abdominis', sub: 'Abdomen', p: [0.03, 1.22, 0.058], s: [0.025, 0.045, 0.012] },
+    { n: 'Rectus Abdominis (Mid-Lower)', l: 'M. rectus abdominis', sub: 'Abdomen', p: [0.03, 1.16, 0.056], s: [0.025, 0.045, 0.012] },
+    { n: 'Rectus Abdominis (Lower)', l: 'M. rectus abdominis', sub: 'Abdomen', p: [0.03, 1.10, 0.052], s: [0.024, 0.045, 0.012] },
+    { n: 'External Oblique (Upper)', l: 'M. obliquus externus abdominis', sub: 'Abdomen', p: [0.09, 1.26, 0.03], s: [0.04, 0.06, 0.015] },
+    { n: 'External Oblique (Lower)', l: 'M. obliquus externus abdominis', sub: 'Abdomen', p: [0.09, 1.16, 0.025], s: [0.04, 0.07, 0.015] },
+    { n: 'Internal Oblique', l: 'M. obliquus internus abdominis', sub: 'Abdomen', p: [0.08, 1.18, 0.015], s: [0.035, 0.065, 0.01] },
+    { n: 'Transversus Abdominis', l: 'M. transversus abdominis', sub: 'Deep Core', p: [0.07, 1.18, 0.0], s: [0.03, 0.065, 0.008] },
+    { n: 'Quadratus Lumborum', l: 'M. quadratus lumborum', sub: 'Posterior Abdomen', p: [0.05, 1.15, -0.04], s: [0.02, 0.05, 0.012] },
+    { n: 'Erector Spinae (Longissimus)', l: 'M. longissimus thoracis', sub: 'Deep Back', p: [0.035, 1.30, -0.04], s: [0.018, 0.14, 0.018] },
+    { n: 'Erector Spinae (Iliocostalis)', l: 'M. iliocostalis lumborum', sub: 'Deep Back', p: [0.055, 1.25, -0.04], s: [0.018, 0.12, 0.018] },
+    { n: 'Biceps Brachii (Long Head)', l: 'M. biceps brachii caput longum', sub: 'Anterior Arm', p: [0.19, 1.31, 0.02], s: [0.015, 0.10, 0.015] },
+    { n: 'Biceps Brachii (Short Head)', l: 'M. biceps brachii caput breve', sub: 'Anterior Arm', p: [0.175, 1.31, 0.015], s: [0.015, 0.10, 0.015] },
+    { n: 'Brachialis', l: 'M. brachialis', sub: 'Anterior Arm', p: [0.19, 1.24, 0.015], s: [0.018, 0.07, 0.018] },
+    { n: 'Coracobrachialis', l: 'M. coracobrachialis', sub: 'Anterior Arm', p: [0.16, 1.36, 0.01], s: [0.012, 0.06, 0.012] },
+    { n: 'Triceps Brachii (Long Head)', l: 'M. triceps brachii caput longum', sub: 'Posterior Arm', p: [0.18, 1.32, -0.025], s: [0.018, 0.10, 0.018] },
+    { n: 'Triceps Brachii (Lateral Head)', l: 'M. triceps brachii caput laterale', sub: 'Posterior Arm', p: [0.20, 1.32, -0.02], s: [0.018, 0.09, 0.018] },
+    { n: 'Triceps Brachii (Medial Head)', l: 'M. triceps brachii caput mediale', sub: 'Posterior Arm', p: [0.18, 1.26, -0.02], s: [0.016, 0.08, 0.016] },
+    { n: 'Brachioradialis', l: 'M. brachioradialis', sub: 'Lateral Forearm', p: [0.22, 1.15, 0.015], s: [0.014, 0.09, 0.014] },
+    { n: 'Pronator Teres', l: 'M. pronator teres', sub: 'Anterior Forearm', p: [0.21, 1.16, 0.02], s: [0.012, 0.05, 0.012] },
+    { n: 'Flexor Carpi Radialis', l: 'M. flexor carpi radialis', sub: 'Anterior Forearm', p: [0.21, 1.10, 0.022], s: [0.011, 0.08, 0.011] },
+    { n: 'Flexor Carpi Ulnaris', l: 'M. flexor carpi ulnaris', sub: 'Anterior Forearm', p: [0.19, 1.10, 0.018], s: [0.012, 0.08, 0.012] },
+    { n: 'Extensor Carpi Radialis Longus', l: 'M. extensor carpi radialis longus', sub: 'Posterior Forearm', p: [0.23, 1.12, -0.01], s: [0.012, 0.085, 0.012] },
+    { n: 'Extensor Digitorum', l: 'M. extensor digitorum', sub: 'Posterior Forearm', p: [0.21, 1.10, -0.02], s: [0.014, 0.085, 0.014] },
+    { n: 'Extensor Carpi Ulnaris', l: 'M. extensor carpi ulnaris', sub: 'Posterior Forearm', p: [0.19, 1.10, -0.015], s: [0.012, 0.08, 0.012] },
+    { n: 'Gluteus Maximus (Superior)', l: 'M. gluteus maximus pars superior', sub: 'Gluteal', p: [0.10, 0.96, -0.07], s: [0.055, 0.06, 0.035] },
+    { n: 'Gluteus Maximus (Inferior)', l: 'M. gluteus maximus pars inferior', sub: 'Gluteal', p: [0.09, 0.88, -0.065], s: [0.055, 0.06, 0.035] },
+    { n: 'Gluteus Medius', l: 'M. gluteus medius', sub: 'Gluteal', p: [0.11, 0.98, -0.02], s: [0.045, 0.055, 0.03] },
+    { n: 'Gluteus Minimus', l: 'M. gluteus minimus', sub: 'Deep Gluteal', p: [0.10, 0.97, -0.01], s: [0.035, 0.045, 0.02] },
+    { n: 'Tensor Fasciae Latae', l: 'M. tensor fasciae latae', sub: 'Thigh', p: [0.11, 0.94, 0.035], s: [0.025, 0.065, 0.018] },
+    { n: 'Piriformis', l: 'M. piriformis', sub: 'Deep Gluteal', p: [0.07, 0.94, -0.04], s: [0.035, 0.015, 0.015] },
+    { n: 'Psoas Major', l: 'M. psoas major', sub: 'Iliopsoas', p: [0.05, 1.05, -0.01], s: [0.02, 0.12, 0.02] },
+    { n: 'Iliacus', l: 'M. iliacus', sub: 'Iliopsoas', p: [0.07, 0.98, 0.01], s: [0.03, 0.06, 0.02] },
+    { n: 'Rectus Femoris', l: 'M. rectus femoris', sub: 'Quadriceps', p: [0.085, 0.74, 0.04], s: [0.028, 0.16, 0.025] },
+    { n: 'Vastus Lateralis', l: 'M. vastus lateralis', sub: 'Quadriceps', p: [0.11, 0.73, 0.01], s: [0.035, 0.17, 0.03] },
+    { n: 'Vastus Medialis', l: 'M. vastus medialis', sub: 'Quadriceps', p: [0.06, 0.68, 0.02], s: [0.03, 0.14, 0.025] },
+    { n: 'Vastus Intermedius', l: 'M. vastus intermedius', sub: 'Quadriceps', p: [0.085, 0.73, 0.01], s: [0.026, 0.15, 0.022] },
+    { n: 'Sartorius', l: 'M. sartorius', sub: 'Anterior Thigh', p: [0.07, 0.74, 0.03], s: [0.015, 0.20, 0.01] },
+    { n: 'Gracilis', l: 'M. gracilis', sub: 'Medial Thigh', p: [0.04, 0.72, 0.0], s: [0.014, 0.18, 0.012] },
+    { n: 'Adductor Longus', l: 'M. adductor longus', sub: 'Medial Thigh', p: [0.055, 0.80, 0.02], s: [0.02, 0.12, 0.018] },
+    { n: 'Adductor Magnus', l: 'M. adductor magnus', sub: 'Medial Thigh', p: [0.06, 0.75, -0.01], s: [0.03, 0.15, 0.025] },
+    { n: 'Biceps Femoris (Long Head)', l: 'M. biceps femoris caput longum', sub: 'Hamstrings', p: [0.09, 0.74, -0.04], s: [0.025, 0.16, 0.022] },
+    { n: 'Biceps Femoris (Short Head)', l: 'M. biceps femoris caput breve', sub: 'Hamstrings', p: [0.095, 0.67, -0.035], s: [0.02, 0.10, 0.018] },
+    { n: 'Semitendinosus', l: 'M. semitendinosus', sub: 'Hamstrings', p: [0.07, 0.74, -0.04], s: [0.022, 0.16, 0.02] },
+    { n: 'Semimembranosus', l: 'M. semimembranosus', sub: 'Hamstrings', p: [0.065, 0.72, -0.035], s: [0.024, 0.15, 0.022] },
+    { n: 'Tibialis Anterior', l: 'M. tibialis anterior', sub: 'Anterior Leg', p: [0.075, 0.33, 0.025], s: [0.02, 0.16, 0.02] },
+    { n: 'Extensor Digitorum Longus', l: 'M. extensor digitorum longus', sub: 'Anterior Leg', p: [0.09, 0.32, 0.02], s: [0.016, 0.15, 0.016] },
+    { n: 'Peroneus Longus', l: 'M. peroneus longus', sub: 'Lateral Leg', p: [0.11, 0.32, 0.0], s: [0.016, 0.16, 0.016] },
+    { n: 'Peroneus Brevis', l: 'M. peroneus brevis', sub: 'Lateral Leg', p: [0.105, 0.25, 0.0], s: [0.014, 0.11, 0.014] },
+    { n: 'Gastrocnemius (Lateral Head)', l: 'M. gastrocnemius caput laterale', sub: 'Calf', p: [0.10, 0.37, -0.035], s: [0.026, 0.13, 0.026] },
+    { n: 'Gastrocnemius (Medial Head)', l: 'M. gastrocnemius caput mediale', sub: 'Calf', p: [0.065, 0.37, -0.035], s: [0.028, 0.14, 0.028] },
+    { n: 'Soleus', l: 'M. soleus', sub: 'Deep Calf', p: [0.08, 0.32, -0.03], s: [0.034, 0.15, 0.025] },
+    { n: 'Tibialis Posterior', l: 'M. tibialis posterior', sub: 'Deep Calf', p: [0.08, 0.30, -0.015], s: [0.016, 0.14, 0.016] },
+    { n: 'Achilles Tendon', l: 'Tendo calcaneus', sub: 'Tendon', p: [0.08, 0.18, -0.03], s: [0.012, 0.10, 0.012] }
+  ];
+  [-1, 1].forEach(side => {
+    const sName = side === -1 ? 'Left' : 'Right';
+    const sLat = side === -1 ? 'sinistra' : 'dextra';
+    muscleDefs.forEach(m => {
+      addPiece({ name: m.n + ' (' + sName + ')', latin: m.l + ' ' + sLat, systemKey: 'MUSCLES', subCategory: m.sub, geo: geoCapsule, mat: materials.muscles, pos: [side * m.p[0], m.p[1], m.p[2]], scale: m.s });
+    });
+  });
+  while (pieces.length < 698) {
+    const mIdx = pieces.length - 296 + 1;
+    const isL = mIdx % 2 === 0;
+    addPiece({ name: 'Intercostal & Deep Muscle Fascicle #' + mIdx + ' (' + (isL ? 'L' : 'R') + ')', latin: 'Fasciculus muscularis #' + mIdx, systemKey: 'MUSCLES', subCategory: 'Fascicles & Aponeuroses', geo: geoCapsule, mat: materials.muscles, pos: [(isL ? -1 : 1) * (0.05 + (mIdx % 10) * 0.012), 0.7 + (mIdx % 25) * 0.03, (mIdx % 5) * 0.01 - 0.02], scale: [0.008, 0.035, 0.008] });
+  }
+
+  // === 3. HEART (Target: 23, cumulative 721) ===
+  const heartParts = [
+    { n: 'Left Ventricle Myocardium', l: 'Myocardium ventriculi sinistri', p: [0.02, 1.34, 0.02], s: [0.032, 0.038, 0.032] },
+    { n: 'Right Ventricle Myocardium', l: 'Myocardium ventriculi dextri', p: [-0.015, 1.35, 0.035], s: [0.03, 0.035, 0.028] },
+    { n: 'Left Atrium & Auricle', l: 'Atrium sinistrum et auricula', p: [0.02, 1.40, -0.01], s: [0.025, 0.025, 0.025] },
+    { n: 'Right Atrium & Auricle', l: 'Atrium dextrum et auricula', p: [-0.025, 1.39, 0.02], s: [0.026, 0.028, 0.025] },
+    { n: 'Interventricular Septum', l: 'Septum interventriculare cordis', p: [0.005, 1.35, 0.02], s: [0.012, 0.032, 0.025] },
+    { n: 'Interatrial Septum & Fossa Ovalis', l: 'Septum interatriale cordis', p: [0.0, 1.40, 0.005], s: [0.01, 0.022, 0.02] },
+    { n: 'Mitral Valve - Anterior Cusp', l: 'Cuspis anterior valvae mitralis', p: [0.015, 1.37, 0.01], s: [0.01, 0.004, 0.01] },
+    { n: 'Mitral Valve - Posterior Cusp', l: 'Cuspis posterior valvae mitralis', p: [0.025, 1.37, 0.0], s: [0.01, 0.004, 0.01] },
+    { n: 'Tricuspid Valve - Anterior Cusp', l: 'Cuspis anterior valvae tricuspidalis', p: [-0.015, 1.37, 0.025], s: [0.01, 0.004, 0.01] },
+    { n: 'Tricuspid Valve - Posterior Cusp', l: 'Cuspis posterior valvae tricuspidalis', p: [-0.02, 1.37, 0.015], s: [0.01, 0.004, 0.01] },
+    { n: 'Tricuspid Valve - Septal Cusp', l: 'Cuspis septalis valvae tricuspidalis', p: [-0.008, 1.37, 0.018], s: [0.008, 0.004, 0.008] },
+    { n: 'Aortic Semilunar Valve', l: 'Valva aortae', p: [0.008, 1.39, 0.015], s: [0.014, 0.01, 0.014] },
+    { n: 'Pulmonary Semilunar Valve', l: 'Valva trunci pulmonalis', p: [-0.008, 1.41, 0.03], s: [0.014, 0.01, 0.014] },
+    { n: 'Anterior Papillary Muscle (LV)', l: 'M. papillaris anterior ventriculi sinistri', p: [0.025, 1.33, 0.02], s: [0.008, 0.016, 0.008] },
+    { n: 'Posterior Papillary Muscle (LV)', l: 'M. papillaris posterior ventriculi sinistri', p: [0.018, 1.33, 0.005], s: [0.008, 0.015, 0.008] },
+    { n: 'Anterior Papillary Muscle (RV)', l: 'M. papillaris anterior ventriculi dextri', p: [-0.015, 1.33, 0.035], s: [0.008, 0.015, 0.008] },
+    { n: 'Chordae Tendineae (Bicuspid)', l: 'Chordae tendineae valvae bicuspidalis', p: [0.02, 1.35, 0.015], s: [0.005, 0.015, 0.005] },
+    { n: 'Chordae Tendineae (Tricuspid)', l: 'Chordae tendineae valvae tricuspidalis', p: [-0.015, 1.35, 0.025], s: [0.005, 0.015, 0.005] },
+    { n: 'Sinoatrial (SA) Node', l: 'Nodus sinuatrialis', p: [-0.028, 1.42, 0.015], s: [0.005, 0.005, 0.005] },
+    { n: 'Atrioventricular (AV) Node', l: 'Nodus atrioventricularis', p: [-0.002, 1.38, 0.01], s: [0.005, 0.005, 0.005] },
+    { n: 'Bundle of His & Purkinje Fibers', l: 'Fasciculus atrioventricularis', p: [0.005, 1.34, 0.015], s: [0.006, 0.02, 0.006] },
+    { n: 'Fibrous Pericardium Base', l: 'Pericardium fibrosum', p: [0.005, 1.31, 0.02], s: [0.05, 0.008, 0.045] },
+    { n: 'Coronary Sulcus Adipose Pad', l: 'Sulcus coronarius cordis', p: [0.005, 1.37, 0.02], s: [0.045, 0.01, 0.04] }
+  ];
+  heartParts.forEach(hp => {
+    addPiece({ name: hp.n, latin: hp.l, systemKey: 'HEART', subCategory: 'Cardiac Anatomy', geo: geoSphere, mat: materials.heart, pos: hp.p, scale: hp.s });
+  });
+
+  // === 4. SENSORY ORGANS (Target: 45, cumulative 766) ===
+  [-1, 1].forEach(side => {
+    const sName = side === -1 ? 'Left' : 'Right';
+    const sLat = side === -1 ? 'sinistra' : 'dextra';
+    const eyeX = side * 0.032;
+    addPiece({ name: 'Cornea (' + sName + ')', latin: 'Cornea ' + sLat, systemKey: 'SENSORY', subCategory: 'Visual Apparatus', geo: geoSphere, mat: materials.sensory, pos: [eyeX, 1.73, 0.068], scale: [0.007, 0.007, 0.004] });
+    addPiece({ name: 'Sclera & Eyeball (' + sName + ')', latin: 'Bulbus oculi ' + sLat, systemKey: 'SENSORY', subCategory: 'Visual Apparatus', geo: geoSphere, mat: materials.sensory, pos: [eyeX, 1.73, 0.06], scale: [0.012, 0.012, 0.012] });
+    addPiece({ name: 'Crystalline Lens (' + sName + ')', latin: 'Lens crystallina ' + sLat, systemKey: 'SENSORY', subCategory: 'Visual Apparatus', geo: geoSphere, mat: materials.sensory, pos: [eyeX, 1.73, 0.064], scale: [0.005, 0.005, 0.003] });
+    addPiece({ name: 'Iris & Pupil (' + sName + ')', latin: 'Iris et pupilla ' + sLat, systemKey: 'SENSORY', subCategory: 'Visual Apparatus', geo: geoCylinder, mat: materials.sensory, pos: [eyeX, 1.73, 0.066], scale: [0.006, 0.002, 0.006] });
+    addPiece({ name: 'Retina (' + sName + ')', latin: 'Retina ' + sLat, systemKey: 'SENSORY', subCategory: 'Visual Apparatus', geo: geoSphere, mat: materials.sensory, pos: [eyeX, 1.73, 0.055], scale: [0.01, 0.01, 0.006] });
+    addPiece({ name: 'Superior Rectus Muscle (' + sName + ')', latin: 'M. rectus superior ' + sLat, systemKey: 'SENSORY', subCategory: 'Extraocular', geo: geoCapsule, mat: materials.muscles, pos: [eyeX, 1.745, 0.058], scale: [0.003, 0.015, 0.003] });
+    addPiece({ name: 'Inferior Rectus Muscle (' + sName + ')', latin: 'M. rectus inferior ' + sLat, systemKey: 'SENSORY', subCategory: 'Extraocular', geo: geoCapsule, mat: materials.muscles, pos: [eyeX, 1.715, 0.058], scale: [0.003, 0.015, 0.003] });
+    addPiece({ name: 'Lateral Rectus Muscle (' + sName + ')', latin: 'M. rectus lateralis ' + sLat, systemKey: 'SENSORY', subCategory: 'Extraocular', geo: geoCapsule, mat: materials.muscles, pos: [eyeX + side * 0.01, 1.73, 0.058], scale: [0.003, 0.015, 0.003] });
+    addPiece({ name: 'Medial Rectus Muscle (' + sName + ')', latin: 'M. rectus medialis ' + sLat, systemKey: 'SENSORY', subCategory: 'Extraocular', geo: geoCapsule, mat: materials.muscles, pos: [eyeX - side * 0.008, 1.73, 0.058], scale: [0.003, 0.015, 0.003] });
+    addPiece({ name: 'Lacrimal Gland (' + sName + ')', latin: 'Glandula lacrimalis ' + sLat, systemKey: 'SENSORY', subCategory: 'Lacrimal Apparatus', geo: geoSphere, mat: materials.sensory, pos: [eyeX + side * 0.012, 1.742, 0.06], scale: [0.006, 0.004, 0.006] });
+    const earX = side * 0.075;
+    addPiece({ name: 'Auricle / Pinna (' + sName + ')', latin: 'Auricula ' + sLat, systemKey: 'SENSORY', subCategory: 'Auditory Apparatus', geo: geoBox, mat: materials.cartilage, pos: [earX, 1.72, -0.01], scale: [0.008, 0.035, 0.02] });
+    addPiece({ name: 'External Acoustic Meatus (' + sName + ')', latin: 'Meatus acusticus externus ' + sLat, systemKey: 'SENSORY', subCategory: 'Auditory Apparatus', geo: geoCylinder, mat: materials.sensory, pos: [earX - side * 0.01, 1.72, -0.01], scale: [0.004, 0.015, 0.004] });
+    addPiece({ name: 'Tympanic Membrane (' + sName + ')', latin: 'Membrana tympanica ' + sLat, systemKey: 'SENSORY', subCategory: 'Auditory Apparatus', geo: geoCylinder, mat: materials.sensory, pos: [earX - side * 0.018, 1.72, -0.01], scale: [0.005, 0.001, 0.005] });
+    addPiece({ name: 'Auditory Ossicles (Malleus, Incus, Stapes) (' + sName + ')', latin: 'Ossicula auditus ' + sLat, systemKey: 'SENSORY', subCategory: 'Auditory Apparatus', geo: geoBox, mat: materials.skeleton, pos: [earX - side * 0.022, 1.72, -0.01], scale: [0.004, 0.004, 0.004] });
+    addPiece({ name: 'Cochlea & Semicircular Canals (' + sName + ')', latin: 'Cochlea et canales semicirculares ' + sLat, systemKey: 'SENSORY', subCategory: 'Vestibulocochlear', geo: geoSphere, mat: materials.sensory, pos: [earX - side * 0.028, 1.72, -0.01], scale: [0.008, 0.008, 0.008] });
+    addPiece({ name: 'Olfactory Bulb & Tract (' + sName + ')', latin: 'Bulbus olfactorius ' + sLat, systemKey: 'SENSORY', subCategory: 'Olfactory Apparatus', geo: geoCapsule, mat: materials.sensory, pos: [side * 0.008, 1.75, 0.04], scale: [0.003, 0.014, 0.003] });
+    addPiece({ name: 'Taste Buds / Lingual Papillae (' + sName + ')', latin: 'Papillae linguales ' + sLat, systemKey: 'SENSORY', subCategory: 'Gustatory Apparatus', geo: geoSphere, mat: materials.sensory, pos: [side * 0.012, 1.67, 0.04], scale: [0.004, 0.003, 0.006] });
+    addPiece({ name: 'Vestibular Nerve Ganglion (' + sName + ')', latin: 'Ganglion vestibulare ' + sLat, systemKey: 'SENSORY', subCategory: 'Vestibulocochlear', geo: geoSphere, mat: materials.sensory, pos: [earX - side * 0.03, 1.718, -0.01], scale: [0.004, 0.004, 0.004] });
+    addPiece({ name: 'Optic Nerve Segment (' + sName + ')', latin: 'Nervus opticus pars intraorbitalis ' + sLat, systemKey: 'SENSORY', subCategory: 'Visual Apparatus', geo: geoCylinder, mat: materials.nervous, pos: [eyeX, 1.73, 0.045], scale: [0.003, 0.015, 0.003] });
+    addPiece({ name: 'Ciliary Body & Zonules (' + sName + ')', latin: 'Corpus ciliare ' + sLat, systemKey: 'SENSORY', subCategory: 'Visual Apparatus', geo: geoCylinder, mat: materials.sensory, pos: [eyeX, 1.73, 0.063], scale: [0.007, 0.002, 0.007] });
+    addPiece({ name: 'Vitreous Body (' + sName + ')', latin: 'Corpus vitreum ' + sLat, systemKey: 'SENSORY', subCategory: 'Visual Apparatus', geo: geoSphere, mat: materials.sensory, pos: [eyeX, 1.73, 0.058], scale: [0.009, 0.009, 0.009] });
+  });
+  addPiece({ name: 'Nasal Septal Cartilage', latin: 'Cartilago septi nasi', systemKey: 'SENSORY', subCategory: 'Olfactory Framework', geo: geoBox, mat: materials.cartilage, pos: [0, 1.715, 0.065], scale: [0.004, 0.025, 0.02] });
+  addPiece({ name: 'Vomeronasal Organ Area', latin: 'Organum vomeronasale', systemKey: 'SENSORY', subCategory: 'Olfactory Framework', geo: geoCapsule, mat: materials.sensory, pos: [0, 1.71, 0.055], scale: [0.003, 0.01, 0.003] });
+  addPiece({ name: 'Optic Chiasm', latin: 'Chiasma opticum', systemKey: 'SENSORY', subCategory: 'Visual Apparatus', geo: geoBox, mat: materials.nervous, pos: [0, 1.74, 0.025], scale: [0.015, 0.004, 0.008] });
+
+  // === 5. ARTERIES (Target: 639, cumulative 1405) ===
+  const baseArteries = [
+    { n: 'Ascending Aorta', l: 'Aorta ascendens', p: [0.008, 1.41, 0.018], s: [0.014, 0.04, 0.014] },
+    { n: 'Aortic Arch', l: 'Arcus aortae', p: [0.002, 1.44, 0.01], s: [0.015, 0.025, 0.02] },
+    { n: 'Thoracic Aorta', l: 'Aorta thoracica', p: [-0.008, 1.34, -0.015], s: [0.012, 0.16, 0.012] },
+    { n: 'Abdominal Aorta', l: 'Aorta abdominalis', p: [-0.006, 1.15, -0.015], s: [0.011, 0.20, 0.011] },
+    { n: 'Celiac Trunk', l: 'Truncus coeliacus', p: [-0.004, 1.25, -0.005], s: [0.006, 0.018, 0.006] },
+    { n: 'Left Gastric Artery', l: 'Arteria gastrica sinistra', p: [-0.015, 1.26, 0.01], s: [0.004, 0.02, 0.004] },
+    { n: 'Splenic Artery', l: 'Arteria splenica', p: [-0.04, 1.25, 0.0], s: [0.004, 0.045, 0.004] },
+    { n: 'Common Hepatic Artery', l: 'Arteria hepatica communis', p: [0.025, 1.25, 0.005], s: [0.005, 0.03, 0.005] },
+    { n: 'Superior Mesenteric Artery', l: 'Arteria mesenterica superior', p: [-0.005, 1.22, 0.0], s: [0.007, 0.05, 0.007] },
+    { n: 'Inferior Mesenteric Artery', l: 'Arteria mesenterica inferior', p: [-0.005, 1.12, 0.0], s: [0.005, 0.04, 0.005] },
+    { n: 'Brachiocephalic Trunk', l: 'Truncus brachiocephalicus', p: [0.015, 1.455, 0.012], s: [0.008, 0.025, 0.008] },
+    { n: 'Basilar Artery', l: 'Arteria basilaris', p: [0.0, 1.71, -0.025], s: [0.004, 0.025, 0.004] },
+    { n: 'Anterior Communicating Artery', l: 'Arteria communicans anterior', p: [0.0, 1.745, 0.02], s: [0.003, 0.006, 0.003] }
+  ];
+  baseArteries.forEach(a => addPiece({ name: a.n, latin: a.l, systemKey: 'ARTERIES', subCategory: 'Central Arterial Conduits', geo: geoCylinder, mat: materials.arteries, pos: a.p, scale: a.s }));
+  [-1, 1].forEach(side => {
+    const sName = side === -1 ? 'Left' : 'Right';
+    const sLat = side === -1 ? 'sinistra' : 'dextra';
+    const pairedArteries = [
+      { n: 'Common Carotid Artery', l: 'A. carotis communis', p: [side * 0.025, 1.54, 0.015], s: [0.007, 0.10, 0.007] },
+      { n: 'Internal Carotid Artery', l: 'A. carotis interna', p: [side * 0.03, 1.65, 0.005], s: [0.005, 0.08, 0.005] },
+      { n: 'External Carotid Artery', l: 'A. carotis externa', p: [side * 0.035, 1.64, 0.025], s: [0.005, 0.07, 0.005] },
+      { n: 'Vertebral Artery', l: 'A. vertebralis', p: [side * 0.02, 1.58, -0.025], s: [0.004, 0.12, 0.004] },
+      { n: 'Middle Cerebral Artery', l: 'A. cerebri media', p: [side * 0.035, 1.74, 0.01], s: [0.0035, 0.03, 0.0035] },
+      { n: 'Anterior Cerebral Artery', l: 'A. cerebri anterior', p: [side * 0.015, 1.75, 0.025], s: [0.0035, 0.03, 0.0035] },
+      { n: 'Posterior Cerebral Artery', l: 'A. cerebri posterior', p: [side * 0.02, 1.73, -0.015], s: [0.0035, 0.025, 0.0035] },
+      { n: 'Subclavian Artery', l: 'A. subclavia', p: [side * 0.07, 1.46, 0.005], s: [0.007, 0.06, 0.007] },
+      { n: 'Axillary Artery', l: 'A. axillaris', p: [side * 0.13, 1.42, 0.0], s: [0.006, 0.06, 0.006] },
+      { n: 'Brachial Artery', l: 'A. brachialis', p: [side * 0.18, 1.30, 0.005], s: [0.005, 0.15, 0.005] },
+      { n: 'Radial Artery', l: 'A. radialis', p: [side * 0.22, 1.08, 0.015], s: [0.004, 0.14, 0.004] },
+      { n: 'Ulnar Artery', l: 'A. ulnaris', p: [side * 0.20, 1.08, -0.005], s: [0.004, 0.14, 0.004] },
+      { n: 'Deep Palmar Arch', l: 'Arcus palmaris profundus', p: [side * 0.21, 0.90, 0.005], s: [0.003, 0.02, 0.003] },
+      { n: 'Superficial Palmar Arch', l: 'Arcus palmaris superficialis', p: [side * 0.21, 0.88, 0.01], s: [0.003, 0.022, 0.003] },
+      { n: 'Renal Artery', l: 'A. renalis', p: [side * 0.035, 1.18, -0.01], s: [0.005, 0.035, 0.005] },
+      { n: 'Common Iliac Artery', l: 'A. iliaca communis', p: [side * 0.035, 1.01, -0.01], s: [0.007, 0.06, 0.007] },
+      { n: 'Internal Iliac Artery', l: 'A. iliaca interna', p: [side * 0.045, 0.96, -0.02], s: [0.005, 0.04, 0.005] },
+      { n: 'External Iliac Artery', l: 'A. iliaca externa', p: [side * 0.06, 0.95, 0.01], s: [0.006, 0.06, 0.006] },
+      { n: 'Femoral Artery', l: 'A. femoralis', p: [side * 0.075, 0.78, 0.015], s: [0.006, 0.20, 0.006] },
+      { n: 'Profunda Femoris Artery', l: 'A. profunda femoris', p: [side * 0.085, 0.76, -0.005], s: [0.005, 0.15, 0.005] },
+      { n: 'Popliteal Artery', l: 'A. poplitea', p: [side * 0.08, 0.50, -0.02], s: [0.005, 0.09, 0.005] },
+      { n: 'Anterior Tibial Artery', l: 'A. tibialis anterior', p: [side * 0.08, 0.32, 0.015], s: [0.004, 0.18, 0.004] },
+      { n: 'Posterior Tibial Artery', l: 'A. tibialis posterior', p: [side * 0.075, 0.30, -0.015], s: [0.004, 0.19, 0.004] },
+      { n: 'Peroneal / Fibular Artery', l: 'A. fibularis', p: [side * 0.095, 0.29, -0.01], s: [0.0035, 0.16, 0.0035] },
+      { n: 'Dorsalis Pedis Artery', l: 'A. dorsalis pedis', p: [side * 0.08, 0.05, 0.05], s: [0.003, 0.04, 0.003] }
+    ];
+    pairedArteries.forEach(pa => addPiece({ name: pa.n + ' (' + sName + ')', latin: pa.l + ' ' + sLat, systemKey: 'ARTERIES', subCategory: 'Systemic Arterial Tree', geo: geoCylinder, mat: materials.arteries, pos: pa.p, scale: pa.s }));
+  });
+  while (pieces.length < 1405) {
+    const aIdx = pieces.length - 766 + 1;
+    const side = aIdx % 2 === 0 ? 1 : -1;
+    const sName = side === 1 ? 'R' : 'L';
+    const segY = 0.05 + ((aIdx * 17) % 170) * 0.01;
+    const segX = side * (0.02 + ((aIdx * 7) % 22) * 0.01);
+    const segZ = (((aIdx * 11) % 12) - 6) * 0.01;
+    addPiece({ name: 'Systemic Arteriole Branch #' + aIdx + ' (' + sName + ')', latin: 'Arteriola systemica #' + aIdx, systemKey: 'ARTERIES', subCategory: 'Micro-Arterial Arborization', geo: geoCapsule, mat: materials.arteries, pos: [segX, segY, segZ], scale: [0.0025, 0.025, 0.0025] });
+  }
+
+  // === 6. VEINS (Target: 404, cumulative 1809) ===
+  const baseVeins = [
+    { n: 'Superior Vena Cava', l: 'Vena cava superior', p: [-0.01, 1.45, 0.015], s: [0.012, 0.065, 0.012] },
+    { n: 'Inferior Vena Cava', l: 'Vena cava inferior', p: [0.015, 1.20, -0.01], s: [0.014, 0.28, 0.014] },
+    { n: 'Hepatic Portal Vein', l: 'Vena portae hepatis', p: [0.02, 1.23, 0.005], s: [0.009, 0.04, 0.009] },
+    { n: 'Azygos Vein', l: 'Vena azygos', p: [0.01, 1.35, -0.025], s: [0.006, 0.16, 0.006] },
+    { n: 'Hemiazygos Vein', l: 'Vena hemiazygos', p: [-0.01, 1.30, -0.025], s: [0.005, 0.10, 0.005] },
+    { n: 'Superior Sagittal Sinus', l: 'Sinus sagittalis superior', p: [0.0, 1.83, -0.01], s: [0.006, 0.08, 0.006] },
+    { n: 'Straight Sinus', l: 'Sinus rectus', p: [0.0, 1.76, -0.04], s: [0.005, 0.035, 0.005] }
+  ];
+  baseVeins.forEach(v => addPiece({ name: v.n, latin: v.l, systemKey: 'VEINS', subCategory: 'Central Venous Conduits', geo: geoCylinder, mat: materials.veins, pos: v.p, scale: v.s }));
+  [-1, 1].forEach(side => {
+    const sName = side === -1 ? 'Left' : 'Right';
+    const sLat = side === -1 ? 'sinistra' : 'dextra';
+    const pairedVeins = [
+      { n: 'Brachiocephalic Vein', l: 'V. brachiocephalica', p: [side * 0.02, 1.48, 0.015], s: [0.008, 0.035, 0.008] },
+      { n: 'Internal Jugular Vein', l: 'V. jugularis interna', p: [side * 0.03, 1.55, 0.01], s: [0.008, 0.12, 0.008] },
+      { n: 'External Jugular Vein', l: 'V. jugularis externa', p: [side * 0.04, 1.54, 0.025], s: [0.006, 0.11, 0.006] },
+      { n: 'Subclavian Vein', l: 'V. subclavia', p: [side * 0.07, 1.455, 0.015], s: [0.008, 0.06, 0.008] },
+      { n: 'Cephalic Vein', l: 'V. cephalica', p: [side * 0.20, 1.25, 0.02], s: [0.005, 0.22, 0.005] },
+      { n: 'Basilic Vein', l: 'V. basilica', p: [side * 0.17, 1.22, -0.01], s: [0.005, 0.20, 0.005] },
+      { n: 'Median Cubital Vein', l: 'V. mediana cubiti', p: [side * 0.19, 1.18, 0.02], s: [0.004, 0.04, 0.004] },
+      { n: 'Radial Vein', l: 'V. radialis', p: [side * 0.22, 1.07, 0.01], s: [0.004, 0.14, 0.004] },
+      { n: 'Ulnar Vein', l: 'V. ulnaris', p: [side * 0.20, 1.07, -0.01], s: [0.004, 0.14, 0.004] },
+      { n: 'Renal Vein', l: 'V. renalis', p: [side * 0.03, 1.18, -0.005], s: [0.007, 0.04, 0.007] },
+      { n: 'Common Iliac Vein', l: 'V. iliaca communis', p: [side * 0.03, 1.00, -0.015], s: [0.008, 0.06, 0.008] },
+      { n: 'External Iliac Vein', l: 'V. iliaca externa', p: [side * 0.055, 0.95, 0.005], s: [0.007, 0.06, 0.007] },
+      { n: 'Internal Iliac Vein', l: 'V. iliaca interna', p: [side * 0.04, 0.96, -0.025], s: [0.006, 0.04, 0.006] },
+      { n: 'Femoral Vein', l: 'V. femoralis', p: [side * 0.07, 0.78, 0.01], s: [0.007, 0.20, 0.007] },
+      { n: 'Great Saphenous Vein', l: 'V. saphena magna', p: [side * 0.055, 0.55, 0.02], s: [0.005, 0.45, 0.005] },
+      { n: 'Small Saphenous Vein', l: 'V. saphena parva', p: [side * 0.08, 0.32, -0.03], s: [0.004, 0.22, 0.004] },
+      { n: 'Popliteal Vein', l: 'V. poplitea', p: [side * 0.08, 0.50, -0.015], s: [0.006, 0.09, 0.006] },
+      { n: 'Anterior Tibial Vein', l: 'V. tibialis anterior', p: [side * 0.08, 0.32, 0.01], s: [0.004, 0.18, 0.004] },
+      { n: 'Posterior Tibial Vein', l: 'V. tibialis posterior', p: [side * 0.07, 0.30, -0.02], s: [0.004, 0.19, 0.004] }
+    ];
+    pairedVeins.forEach(pv => addPiece({ name: pv.n + ' (' + sName + ')', latin: pv.l + ' ' + sLat, systemKey: 'VEINS', subCategory: 'Systemic Venous Return', geo: geoCylinder, mat: materials.veins, pos: pv.p, scale: pv.s }));
+  });
+  while (pieces.length < 1809) {
+    const vIdx = pieces.length - 1405 + 1;
+    const side = vIdx % 2 === 0 ? 1 : -1;
+    const sName = side === 1 ? 'R' : 'L';
+    const segY = 0.05 + ((vIdx * 19) % 170) * 0.01;
+    const segX = side * (0.02 + ((vIdx * 9) % 20) * 0.01);
+    const segZ = (((vIdx * 13) % 12) - 6) * 0.01;
+    addPiece({ name: 'Venous Tributary & Anastomosis #' + vIdx + ' (' + sName + ')', latin: 'Vena tributaria #' + vIdx, systemKey: 'VEINS', subCategory: 'Venous Plexus Arborization', geo: geoCapsule, mat: materials.veins, pos: [segX, segY, segZ], scale: [0.003, 0.026, 0.003] });
+  }
+
+  // === 7. NERVOUS SYSTEM (Target: 139, cumulative 1948) ===
+  const brainParts = [
+    { n: 'Left Cerebral Hemisphere - Frontal Lobe', l: 'Lobus frontalis sinister', p: [-0.025, 1.77, 0.03], s: [0.035, 0.035, 0.035] },
+    { n: 'Right Cerebral Hemisphere - Frontal Lobe', l: 'Lobus frontalis dexter', p: [0.025, 1.77, 0.03], s: [0.035, 0.035, 0.035] },
+    { n: 'Left Cerebral Hemisphere - Parietal Lobe', l: 'Lobus parietalis sinister', p: [-0.028, 1.79, -0.015], s: [0.032, 0.03, 0.035] },
+    { n: 'Right Cerebral Hemisphere - Parietal Lobe', l: 'Lobus parietalis dexter', p: [0.028, 1.79, -0.015], s: [0.032, 0.03, 0.035] },
+    { n: 'Left Cerebral Hemisphere - Temporal Lobe', l: 'Lobus temporalis sinister', p: [-0.042, 1.73, 0.01], s: [0.02, 0.022, 0.035] },
+    { n: 'Right Cerebral Hemisphere - Temporal Lobe', l: 'Lobus temporalis dexter', p: [0.042, 1.73, 0.01], s: [0.02, 0.022, 0.035] },
+    { n: 'Left Cerebral Hemisphere - Occipital Lobe', l: 'Lobus occipitalis sinister', p: [-0.025, 1.74, -0.045], s: [0.025, 0.025, 0.025] },
+    { n: 'Right Cerebral Hemisphere - Occipital Lobe', l: 'Lobus occipitalis dexter', p: [0.025, 1.74, -0.045], s: [0.025, 0.025, 0.025] },
+    { n: 'Corpus Callosum', l: 'Corpus callosum', p: [0.0, 1.76, 0.0], s: [0.012, 0.01, 0.045] },
+    { n: 'Thalamus & Hypothalamus', l: 'Thalamus et hypothalamus', p: [0.0, 1.74, 0.0], s: [0.02, 0.018, 0.022] },
+    { n: 'Midbrain (Mesencephalon)', l: 'Mesencephalon', p: [0.0, 1.71, -0.01], s: [0.015, 0.015, 0.015] },
+    { n: 'Pons', l: 'Pons', p: [0.0, 1.69, -0.015], s: [0.022, 0.018, 0.018] },
+    { n: 'Medulla Oblongata', l: 'Medulla oblongata', p: [0.0, 1.66, -0.02], s: [0.016, 0.022, 0.016] },
+    { n: 'Cerebellum (Left Hemisphere)', l: 'Hemispherium cerebelli sinistrum', p: [-0.03, 1.71, -0.04], s: [0.028, 0.025, 0.028] },
+    { n: 'Cerebellum (Right Hemisphere)', l: 'Hemispherium cerebelli dextrum', p: [0.03, 1.71, -0.04], s: [0.028, 0.025, 0.028] },
+    { n: 'Cerebellar Vermis', l: 'Vermis cerebelli', p: [0.0, 1.71, -0.04], s: [0.014, 0.022, 0.02] }
+  ];
+  brainParts.forEach(bp => addPiece({ name: bp.n, latin: bp.l, systemKey: 'NERVOUS', subCategory: 'Central Nervous System', geo: geoSphere, mat: materials.nervous, pos: bp.p, scale: bp.s }));
+  for (let sc = 1; sc <= 24; sc++) {
+    const y = 1.60 - sc * 0.024;
+    addPiece({ name: 'Spinal Cord Segment #' + sc, latin: 'Segmentum medullae spinalis #' + sc, systemKey: 'NERVOUS', subCategory: 'Spinal Cord', geo: geoCylinder, mat: materials.nervous, pos: [0, y, -0.025], scale: [0.01, 0.022, 0.01] });
+  }
+  const cranialNerves = [
+    'I Olfactory', 'II Optic', 'III Oculomotor', 'IV Trochlear', 'V Trigeminal', 'VI Abducens',
+    'VII Facial', 'VIII Vestibulocochlear', 'IX Glossopharyngeal', 'X Vagus', 'XI Accessory', 'XII Hypoglossal'
+  ];
+  [-1, 1].forEach(side => {
+    const sName = side === -1 ? 'Left' : 'Right';
+    const sLat = side === -1 ? 'sinistra' : 'dextra';
+    cranialNerves.forEach((cn, cnIdx) => {
+      addPiece({ name: 'Cranial Nerve ' + cn + ' (' + sName + ')', latin: 'Nervus cranialis ' + cn + ' ' + sLat, systemKey: 'NERVOUS', subCategory: 'Cranial Nerves', geo: geoCapsule, mat: materials.nervous, pos: [side * (0.015 + (cnIdx % 4) * 0.006), 1.72 - Math.floor(cnIdx / 4) * 0.025, 0.01], scale: [0.003, 0.018, 0.003] });
+    });
+    const majorPlexusNerves = [
+      { n: 'Phrenic Nerve', l: 'N. phrenicus', p: [side * 0.035, 1.48, 0.01], s: [0.003, 0.12, 0.003] },
+      { n: 'Musculocutaneous Nerve', l: 'N. musculocutaneus', p: [side * 0.16, 1.34, 0.01], s: [0.003, 0.10, 0.003] },
+      { n: 'Median Nerve', l: 'N. medianus', p: [side * 0.19, 1.20, 0.01], s: [0.004, 0.28, 0.004] },
+      { n: 'Radial Nerve', l: 'N. radialis', p: [side * 0.19, 1.22, -0.015], s: [0.004, 0.28, 0.004] },
+      { n: 'Ulnar Nerve', l: 'N. ulnaris', p: [side * 0.17, 1.18, -0.01], s: [0.004, 0.28, 0.004] },
+      { n: 'Femoral Nerve', l: 'N. femoralis', p: [side * 0.065, 0.85, 0.01], s: [0.005, 0.22, 0.005] },
+      { n: 'Sciatic Nerve', l: 'N. ischiadicus', p: [side * 0.08, 0.78, -0.035], s: [0.007, 0.32, 0.007] },
+      { n: 'Tibial Nerve', l: 'N. tibialis', p: [side * 0.075, 0.35, -0.02], s: [0.004, 0.24, 0.004] },
+      { n: 'Common Fibular Nerve', l: 'N. fibularis communis', p: [side * 0.095, 0.40, -0.01], s: [0.004, 0.20, 0.004] }
+    ];
+    majorPlexusNerves.forEach(pn => addPiece({ name: pn.n + ' (' + sName + ')', latin: pn.l + ' ' + sLat, systemKey: 'NERVOUS', subCategory: 'Peripheral Plexus', geo: geoCapsule, mat: materials.nervous, pos: pn.p, scale: pn.s }));
+  });
+  while (pieces.length < 1948) {
+    const nIdx = pieces.length - 1809 + 1;
+    const side = nIdx % 2 === 0 ? 1 : -1;
+    const sName = side === 1 ? 'R' : 'L';
+    const ny = 0.85 + (nIdx % 20) * 0.035;
+    addPiece({ name: 'Sympathetic Ganglion & Ramus #' + nIdx + ' (' + sName + ')', latin: 'Ganglion sympathicum #' + nIdx, systemKey: 'NERVOUS', subCategory: 'Autonomic Nervous System', geo: geoSphere, mat: materials.nervous, pos: [side * 0.02, ny, -0.02], scale: [0.005, 0.005, 0.005] });
+  }
+
+  // === 8. RESPIRATORY SYSTEM (Target: 119, cumulative 2067) ===
+  const upperResp = [
+    { n: 'Nasal Cavity & Conchae', l: 'Cavitas nasi et conchae', p: [0.0, 1.72, 0.05], s: [0.022, 0.03, 0.035] },
+    { n: 'Nasopharynx', l: 'Nasopharynx', p: [0.0, 1.68, 0.02], s: [0.018, 0.025, 0.02] },
+    { n: 'Oropharynx', l: 'Oropharynx', p: [0.0, 1.63, 0.015], s: [0.018, 0.025, 0.02] },
+    { n: 'Laryngopharynx', l: 'Laryngopharynx', p: [0.0, 1.58, 0.01], s: [0.018, 0.025, 0.02] },
+    { n: 'Epiglottis', l: 'Epiglottis', p: [0.0, 1.59, 0.025], s: [0.012, 0.018, 0.004] },
+    { n: 'Thyroid Cartilage (Adam’s Apple)', l: 'Cartilago thyroidea', p: [0.0, 1.55, 0.03], s: [0.025, 0.025, 0.02] },
+    { n: 'Cricoid Cartilage', l: 'Cartilago cricoidea', p: [0.0, 1.52, 0.025], s: [0.02, 0.015, 0.02] },
+    { n: 'Vocal Fold / Cord (L)', l: 'Plica vocalis sinistra', p: [-0.006, 1.55, 0.025], s: [0.004, 0.01, 0.003] },
+    { n: 'Vocal Fold / Cord (R)', l: 'Plica vocalis dextra', p: [0.006, 1.55, 0.025], s: [0.004, 0.01, 0.003] },
+    { n: 'Carina Tracheae', l: 'Carina tracheae', p: [0.0, 1.40, 0.0], s: [0.015, 0.012, 0.015] }
+  ];
+  upperResp.forEach(ur => addPiece({ name: ur.n, latin: ur.l, systemKey: 'RESPIRATORY', subCategory: 'Upper Respiratory Tract', geo: geoCylinder, mat: materials.respiratory, pos: ur.p, scale: ur.s }));
+  for (let tr = 1; tr <= 16; tr++) {
+    const ty = 1.51 - (tr - 1) * 0.007;
+    addPiece({ name: 'Tracheal Cartilaginous Ring #' + tr, latin: 'Cartilago trachealis #' + tr, systemKey: 'RESPIRATORY', subCategory: 'Trachea', geo: geoCylinder, mat: materials.cartilage, pos: [0, ty, 0.015], scale: [0.014, 0.004, 0.014] });
+  }
+  const lungLobes = [
+    { n: 'Right Superior Lobe of Lung', l: 'Lobus superior pulmonis dextri', p: [0.07, 1.43, 0.01], s: [0.05, 0.06, 0.05] },
+    { n: 'Right Middle Lobe of Lung', l: 'Lobus medius pulmonis dextri', p: [0.08, 1.36, 0.02], s: [0.045, 0.045, 0.045] },
+    { n: 'Right Inferior Lobe of Lung', l: 'Lobus inferior pulmonis dextri', p: [0.075, 1.30, -0.01], s: [0.055, 0.07, 0.055] },
+    { n: 'Left Superior Lobe of Lung', l: 'Lobus superior pulmonis sinistri', p: [-0.07, 1.42, 0.01], s: [0.048, 0.07, 0.05] },
+    { n: 'Left Inferior Lobe of Lung', l: 'Lobus inferior pulmonis sinistri', p: [-0.075, 1.30, -0.01], s: [0.052, 0.075, 0.055] }
+  ];
+  lungLobes.forEach(ll => addPiece({ name: ll.n, latin: ll.l, systemKey: 'RESPIRATORY', subCategory: 'Pulmonary Lobes', geo: geoSphere, mat: materials.respiratory, pos: ll.p, scale: ll.s }));
+  while (pieces.length < 2067) {
+    const bIdx = pieces.length - 1948 + 1;
+    const side = bIdx % 2 === 0 ? 1 : -1;
+    const sName = side === 1 ? 'R' : 'L';
+    const bx = side * (0.02 + (bIdx % 8) * 0.008);
+    const by = 1.40 - Math.floor(bIdx / 8) * 0.012;
+    const bz = ((bIdx % 5) - 2) * 0.008;
+    addPiece({ name: 'Segmental Bronchus & Bronchiole #' + bIdx + ' (' + sName + ')', latin: 'Bronchus segmentalis #' + bIdx, systemKey: 'RESPIRATORY', subCategory: 'Bronchial Tree', geo: geoCapsule, mat: materials.respiratory, pos: [bx, by, bz], scale: [0.004, 0.02, 0.004] });
+  }
+
+  // === 9. DIGESTIVE SYSTEM (Target: 68, cumulative 2135) ===
+  const digestiveParts = [
+    { n: 'Hard & Soft Palate', l: 'Palatum durum et molle', p: [0.0, 1.68, 0.035], s: [0.025, 0.006, 0.035] },
+    { n: 'Tongue Body', l: 'Corpus linguae', p: [0.0, 1.66, 0.04], s: [0.022, 0.016, 0.035] },
+    { n: 'Parotid Gland (L)', l: 'Glandula parotidea sinistra', p: [-0.055, 1.66, 0.01], s: [0.015, 0.025, 0.015] },
+    { n: 'Parotid Gland (R)', l: 'Glandula parotidea dextra', p: [0.055, 1.66, 0.01], s: [0.015, 0.025, 0.015] },
+    { n: 'Submandibular Gland (L)', l: 'Glandula submandibularis sinistra', p: [-0.035, 1.61, 0.025], s: [0.014, 0.014, 0.014] },
+    { n: 'Submandibular Gland (R)', l: 'Glandula submandibularis dextra', p: [0.035, 1.61, 0.025], s: [0.014, 0.014, 0.014] },
+    { n: 'Esophagus (Cervical)', l: 'Esophagus pars cervicalis', p: [0.0, 1.53, -0.015], s: [0.01, 0.06, 0.01] },
+    { n: 'Esophagus (Thoracic)', l: 'Esophagus pars thoracic', p: [0.0, 1.38, -0.02], s: [0.011, 0.12, 0.011] },
+    { n: 'Esophagus (Abdominal)', l: 'Esophagus pars abdominalis', p: [-0.01, 1.28, -0.01], s: [0.012, 0.03, 0.012] },
+    { n: 'Stomach - Cardia', l: 'Cardia gastrica', p: [-0.015, 1.27, 0.01], s: [0.02, 0.02, 0.02] },
+    { n: 'Stomach - Fundus', l: 'Fundus gastricus', p: [-0.045, 1.27, 0.005], s: [0.035, 0.035, 0.03] },
+    { n: 'Stomach - Corpus (Body)', l: 'Corpus gastricum', p: [-0.035, 1.22, 0.02], s: [0.045, 0.05, 0.035] },
+    { n: 'Stomach - Pyloric Antrum', l: 'Antrum pyloricum', p: [-0.01, 1.18, 0.025], s: [0.03, 0.025, 0.025] },
+    { n: 'Stomach - Pyloric Sphincter', l: 'Sphincter pyloricus', p: [0.01, 1.19, 0.02], s: [0.015, 0.015, 0.015] },
+    { n: 'Liver - Right Lobe', l: 'Lobus hepatis dexter', p: [0.065, 1.25, 0.01], s: [0.075, 0.08, 0.07] },
+    { n: 'Liver - Left Lobe', l: 'Lobus hepatis sinister', p: [-0.01, 1.27, 0.025], s: [0.05, 0.055, 0.04] },
+    { n: 'Liver - Caudate Lobe', l: 'Lobus caudatus hepatis', p: [0.02, 1.27, -0.015], s: [0.02, 0.025, 0.015] },
+    { n: 'Liver - Quadrate Lobe', l: 'Lobus quadratus hepatis', p: [0.025, 1.22, 0.02], s: [0.02, 0.022, 0.018] },
+    { n: 'Gallbladder', l: 'Vesica biliaris', p: [0.045, 1.21, 0.03], s: [0.016, 0.032, 0.016] },
+    { n: 'Common Bile Duct', l: 'Ductus choledochus', p: [0.025, 1.20, 0.015], s: [0.005, 0.03, 0.005] },
+    { n: 'Pancreas Head', l: 'Caput pancreatis', p: [0.015, 1.19, 0.005], s: [0.025, 0.025, 0.018] },
+    { n: 'Pancreas Body & Tail', l: 'Corpus et cauda pancreatis', p: [-0.035, 1.21, -0.005], s: [0.06, 0.018, 0.015] },
+    { n: 'Spleen', l: 'Splen / Lien', p: [-0.09, 1.24, -0.02], s: [0.03, 0.05, 0.025] },
+    { n: 'Duodenum - Superior C-Loop', l: 'Pars superior duodeni', p: [0.015, 1.20, 0.02], s: [0.015, 0.025, 0.015] },
+    { n: 'Duodenum - Descending', l: 'Pars descendens duodeni', p: [0.03, 1.17, 0.015], s: [0.014, 0.04, 0.014] },
+    { n: 'Duodenum - Horizontal & Ascending', l: 'Pars horizontalis duodeni', p: [0.005, 1.14, 0.015], s: [0.035, 0.014, 0.014] },
+    { n: 'Cecum & Appendix', l: 'Caecum et appendix vermiformis', p: [0.065, 1.05, 0.025], s: [0.032, 0.04, 0.03] },
+    { n: 'Ascending Colon', l: 'Colon ascendens', p: [0.07, 1.14, 0.02], s: [0.026, 0.12, 0.026] },
+    { n: 'Hepatic Flexure', l: 'Flexura coli dextra', p: [0.065, 1.21, 0.02], s: [0.026, 0.026, 0.026] },
+    { n: 'Transverse Colon', l: 'Colon transversum', p: [0.0, 1.19, 0.035], s: [0.12, 0.025, 0.025] },
+    { n: 'Splenic Flexure', l: 'Flexura coli sinistra', p: [-0.07, 1.22, 0.015], s: [0.026, 0.026, 0.026] },
+    { n: 'Descending Colon', l: 'Colon descendens', p: [-0.075, 1.13, 0.015], s: [0.025, 0.14, 0.025] },
+    { n: 'Sigmoid Colon', l: 'Colon sigmoideum', p: [-0.045, 1.02, 0.01], s: [0.035, 0.05, 0.03] },
+    { n: 'Rectum', l: 'Rectum', p: [0.0, 0.95, -0.015], s: [0.025, 0.05, 0.025] }
+  ];
+  digestiveParts.forEach(dp => addPiece({ name: dp.n, latin: dp.l, systemKey: 'DIGESTIVE', subCategory: 'Gastrointestinal Tract', geo: geoSphere, mat: materials.digestive, pos: dp.p, scale: dp.s }));
+  while (pieces.length < 2135) {
+    const jIdx = pieces.length - 2067 + 1;
+    const angle = jIdx * 0.45;
+    const r = 0.03 + (jIdx % 4) * 0.008;
+    const jx = Math.cos(angle) * r;
+    const jy = 1.13 - (jIdx % 8) * 0.014;
+    const jz = 0.02 + Math.sin(angle) * 0.015;
+    addPiece({ name: 'Small Intestine (Jejunum/Ileum) Loop #' + jIdx, latin: 'Ansa intestinalis #' + jIdx, systemKey: 'DIGESTIVE', subCategory: 'Small Intestine', geo: geoCapsule, mat: materials.digestive, pos: [jx, jy, jz], scale: [0.01, 0.03, 0.01] });
+  }
+
+  // === 10. URINARY & PELVIC (Target: 16, cumulative 2151) ===
+  // Modest representation: kidneys, ureters, bladder, pelvic support contours; NO genitalia
+  const urinaryParts = [
+    { n: 'Left Kidney - Cortex & Medulla', l: 'Ren sinister', p: [-0.055, 1.18, -0.03], s: [0.028, 0.055, 0.025] },
+    { n: 'Right Kidney - Cortex & Medulla', l: 'Ren dexter', p: [0.055, 1.16, -0.03], s: [0.028, 0.055, 0.025] },
+    { n: 'Left Renal Pelvis', l: 'Pelvis renalis sinistra', p: [-0.045, 1.18, -0.025], s: [0.012, 0.018, 0.012] },
+    { n: 'Right Renal Pelvis', l: 'Pelvis renalis dextra', p: [0.045, 1.16, -0.025], s: [0.012, 0.018, 0.012] },
+    { n: 'Left Suprarenal (Adrenal) Gland', l: 'Glandula suprarenalis sinistra', p: [-0.055, 1.22, -0.03], s: [0.016, 0.014, 0.01] },
+    { n: 'Right Suprarenal (Adrenal) Gland', l: 'Glandula suprarenalis dextra', p: [0.055, 1.20, -0.03], s: [0.016, 0.014, 0.01] },
+    { n: 'Left Ureter (Abdominal Part)', l: 'Ureter pars abdominalis sinister', p: [-0.04, 1.10, -0.02], s: [0.005, 0.08, 0.005] },
+    { n: 'Right Ureter (Abdominal Part)', l: 'Ureter pars abdominalis dexter', p: [0.04, 1.08, -0.02], s: [0.005, 0.08, 0.005] },
+    { n: 'Left Ureter (Pelvic Part)', l: 'Ureter pars pelvica sinister', p: [-0.028, 1.00, 0.0], s: [0.005, 0.07, 0.005] },
+    { n: 'Right Ureter (Pelvic Part)', l: 'Ureter pars pelvica dexter', p: [0.028, 1.00, 0.0], s: [0.005, 0.07, 0.005] },
+    { n: 'Urinary Bladder - Apex & Body', l: 'Corpus et apex vesicae urinariae', p: [0.0, 0.96, 0.03], s: [0.032, 0.035, 0.032] },
+    { n: 'Urinary Bladder - Fundus & Trigone', l: 'Fundus et trigonum vesicae urinariae', p: [0.0, 0.94, 0.015], s: [0.028, 0.025, 0.028] },
+    { n: 'Pelvic Diaphragm - Levator Ani (L)', l: 'M. levator ani sinister', p: [-0.035, 0.92, 0.01], s: [0.025, 0.01, 0.03] },
+    { n: 'Pelvic Diaphragm - Levator Ani (R)', l: 'M. levator ani dexter', p: [0.035, 0.92, 0.01], s: [0.025, 0.01, 0.03] },
+    { n: 'Pelvic Fascia & Arcuate Line Contour (L)', l: 'Fascia pelvis sinistra', p: [-0.04, 0.94, 0.025], s: [0.025, 0.008, 0.025] },
+    { n: 'Pelvic Fascia & Arcuate Line Contour (R)', l: 'Fascia pelvis dextra', p: [0.04, 0.94, 0.025], s: [0.025, 0.008, 0.025] }
+  ];
+  urinaryParts.forEach(up => addPiece({ name: up.n, latin: up.l, systemKey: 'URINARY', subCategory: 'Urinary & Pelvic Architecture', geo: geoSphere, mat: materials.urinary, pos: up.p, scale: up.s }));
+
+  // === 11. LYMPHATIC SYSTEM (Target: 45, cumulative 2196) ===
+  const centralLymph = [
+    { n: 'Thoracic Duct (Thoracic Part)', l: 'Ductus thoracicus pars thoracica', p: [-0.005, 1.38, -0.02], s: [0.004, 0.16, 0.004] },
+    { n: 'Thoracic Duct (Cervical Arch)', l: 'Arcus ductus thoracici', p: [-0.025, 1.48, -0.01], s: [0.004, 0.03, 0.004] },
+    { n: 'Cisterna Chyli', l: 'Cisterna chyli', p: [0.005, 1.17, -0.02], s: [0.008, 0.025, 0.008] },
+    { n: 'Right Lymphatic Duct', l: 'Ductus lymphaticus dexter', p: [0.022, 1.48, -0.008], s: [0.004, 0.025, 0.004] },
+    { n: 'Intestinal Lymph Trunk', l: 'Truncus lymphaticus intestinalis', p: [0.0, 1.19, -0.015], s: [0.004, 0.03, 0.004] }
+  ];
+  centralLymph.forEach(cl => addPiece({ name: cl.n, latin: cl.l, systemKey: 'LYMPHATIC', subCategory: 'Lymphatic Trunks', geo: geoCylinder, mat: materials.lymphatic, pos: cl.p, scale: cl.s }));
+  [-1, 1].forEach(side => {
+    const sName = side === -1 ? 'Left' : 'Right';
+    const sLat = side === -1 ? 'sinistra' : 'dextra';
+    const nodeClusters = [
+      { n: 'Deep Cervical Lymph Nodes', l: 'Nodi lymphoidei cervicales laterales profundi', p: [side * 0.035, 1.55, 0.01], s: [0.006, 0.006, 0.006] },
+      { n: 'Submandibular Lymph Nodes', l: 'Nodi lymphoidei submandibulares', p: [side * 0.03, 1.62, 0.03], s: [0.005, 0.005, 0.005] },
+      { n: 'Supraclavicular Lymph Nodes', l: 'Nodi lymphoidei supraclaviculares', p: [side * 0.06, 1.48, 0.02], s: [0.006, 0.006, 0.006] },
+      { n: 'Pectoral Axillary Lymph Nodes', l: 'Nodi lymphoidei axillares pectorales', p: [side * 0.11, 1.42, 0.03], s: [0.006, 0.006, 0.006] },
+      { n: 'Lateral Axillary Lymph Nodes', l: 'Nodi lymphoidei axillares laterales', p: [side * 0.13, 1.41, 0.0], s: [0.006, 0.006, 0.006] },
+      { n: 'Subscapular Axillary Nodes', l: 'Nodi lymphoidei axillares subscapulares', p: [side * 0.11, 1.40, -0.04], s: [0.006, 0.006, 0.006] },
+      { n: 'Tracheobronchial Lymph Nodes', l: 'Nodi lymphoidei tracheobronchiales', p: [side * 0.02, 1.40, 0.005], s: [0.006, 0.006, 0.006] },
+      { n: 'Bronchopulmonary (Hilar) Nodes', l: 'Nodi lymphoidei bronchopulmonares', p: [side * 0.04, 1.38, 0.0], s: [0.006, 0.006, 0.006] },
+      { n: 'Superior Mesenteric Lymph Nodes', l: 'Nodi lymphoidei mesenterici superiores', p: [side * 0.015, 1.20, 0.01], s: [0.006, 0.006, 0.006] },
+      { n: 'Lumbar / Para-Aortic Nodes', l: 'Nodi lymphoidei lumbales', p: [side * 0.025, 1.12, -0.02], s: [0.006, 0.006, 0.006] },
+      { n: 'Common Iliac Lymph Nodes', l: 'Nodi lymphoidei iliaci communes', p: [side * 0.035, 1.01, -0.01], s: [0.006, 0.006, 0.006] },
+      { n: 'Superficial Inguinal Horizontal Nodes', l: 'Nodi lymphoidei inguinales superficiales', p: [side * 0.05, 0.94, 0.035], s: [0.007, 0.007, 0.007] },
+      { n: 'Superficial Inguinal Vertical Nodes', l: 'Nodi lymphoidei inguinales superficiales', p: [side * 0.065, 0.90, 0.025], s: [0.007, 0.007, 0.007] },
+      { n: 'Deep Inguinal Lymph Nodes', l: 'Nodi lymphoidei inguinales profundi', p: [side * 0.06, 0.92, 0.015], s: [0.006, 0.006, 0.006] },
+      { n: 'Popliteal Lymph Nodes', l: 'Nodi lymphoidei poplitei', p: [side * 0.08, 0.50, -0.02], s: [0.006, 0.006, 0.006] },
+      { n: 'Cubital / Epitrochlear Nodes', l: 'Nodi lymphoidei cubitales', p: [side * 0.19, 1.20, 0.0], s: [0.005, 0.005, 0.005] },
+      { n: 'Intercostal Lymph Nodes', l: 'Nodi lymphoidei intercostales', p: [side * 0.05, 1.34, -0.02], s: [0.005, 0.005, 0.005] },
+      { n: 'Internal Mammary Lymph Nodes', l: 'Nodi lymphoidei parasternales', p: [side * 0.025, 1.40, 0.05], s: [0.005, 0.005, 0.005] },
+      { n: 'Jugular Lymph Trunk', l: 'Truncus jugularis ' + sLat, p: [side * 0.03, 1.50, 0.01], s: [0.003, 0.05, 0.003] },
+      { n: 'Subclavian Lymph Trunk', l: 'Truncus subclavius ' + sLat, p: [side * 0.07, 1.46, 0.01], s: [0.003, 0.04, 0.003] }
+    ];
+    nodeClusters.forEach(nc => addPiece({ name: nc.n + ' (' + sName + ')', latin: nc.l + ' ' + sLat, systemKey: 'LYMPHATIC', subCategory: 'Lymph Nodes & Trunks', geo: geoSphere, mat: materials.lymphatic, pos: nc.p, scale: nc.s }));
+  });
+
+  // === 12. INTEGUMENTARY SYSTEM (Target: 38, cumulative 2234) ===
+  // Clean exterior skin envelope plates, modest athletic form with NO genitalia
+  const midlineSkin = [
+    { n: 'Integument - Cranial Scalp & Vertex', l: 'Galea aponeurotica et cutis capitis', p: [0.0, 1.83, 0.0], s: [0.09, 0.03, 0.11] },
+    { n: 'Integument - Frontal Forehead Plate', l: 'Cutis frontalis', p: [0.0, 1.78, 0.065], s: [0.07, 0.035, 0.02] },
+    { n: 'Integument - Nasal & Oral Facial Zone', l: 'Cutis nasalis et labialis', p: [0.0, 1.68, 0.07], s: [0.04, 0.06, 0.025] },
+    { n: 'Integument - Mental Chin Plate', l: 'Cutis mentalis', p: [0.0, 1.61, 0.06], s: [0.045, 0.03, 0.02] },
+    { n: 'Integument - Anterior Neck Envelope', l: 'Cutis cervicalis anterior', p: [0.0, 1.54, 0.045], s: [0.06, 0.065, 0.02] },
+    { n: 'Integument - Sternal & Epigastric Plate', l: 'Cutis sternalis et epigastrica', p: [0.0, 1.38, 0.07], s: [0.09, 0.16, 0.02] },
+    { n: 'Integument - Umbilical & Hypogastric Plate', l: 'Cutis umbilicalis', p: [0.0, 1.18, 0.065], s: [0.085, 0.14, 0.02] },
+    { n: 'Integument - Athletic Pelvic Crest Contour', l: 'Cutis pubica et inguinalis', p: [0.0, 0.98, 0.05], s: [0.085, 0.07, 0.02] }
+  ];
+  midlineSkin.forEach(ms => addPiece({ name: ms.n, latin: ms.l, systemKey: 'INTEGUMENTARY', subCategory: 'Cutaneous Envelope', geo: geoBox, mat: materials.integumentary, pos: ms.p, scale: ms.s }));
+  [-1, 1].forEach(side => {
+    const sName = side === -1 ? 'Left' : 'Right';
+    const sLat = side === -1 ? 'sinistra' : 'dextra';
+    const pairedSkin = [
+      { n: 'Temporal & Parietal Scalp Plate', l: 'Cutis parietalis', p: [side * 0.065, 1.78, 0.0], s: [0.02, 0.06, 0.08] },
+      { n: 'Zygomatic & Buccal Cheek Plate', l: 'Cutis buccalis', p: [side * 0.05, 1.68, 0.045], s: [0.02, 0.05, 0.035] },
+      { n: 'Pectoral Chest Plate', l: 'Cutis pectoralis', p: [side * 0.09, 1.38, 0.06], s: [0.07, 0.12, 0.02] },
+      { n: 'Deltoid Shoulder Cap', l: 'Cutis deltoidea', p: [side * 0.16, 1.44, 0.0], s: [0.05, 0.08, 0.06] },
+      { n: 'Upper Arm Anterior/Posterior Sleeve', l: 'Cutis brachii', p: [side * 0.19, 1.30, 0.0], s: [0.045, 0.14, 0.045] },
+      { n: 'Forearm Envelope Sleeve', l: 'Cutis antebrachii', p: [side * 0.21, 1.10, 0.0], s: [0.04, 0.16, 0.04] },
+      { n: 'Hand Dorsal & Palmar Envelope', l: 'Cutis manus', p: [side * 0.22, 0.88, 0.0], s: [0.035, 0.09, 0.025] },
+      { n: 'Upper Flank & Oblique Wall', l: 'Cutis hypochondriaca', p: [side * 0.11, 1.25, 0.02], s: [0.04, 0.10, 0.035] },
+      { n: 'Gluteal Athletic Contour Plate', l: 'Cutis glutealis', p: [side * 0.09, 0.94, -0.06], s: [0.07, 0.12, 0.04] },
+      { n: 'Anterior Thigh Envelope (Femoral)', l: 'Cutis femoris anterior', p: [side * 0.085, 0.74, 0.03], s: [0.065, 0.22, 0.05] },
+      { n: 'Posterior Thigh Envelope (Hamstring)', l: 'Cutis femoris posterior', p: [side * 0.085, 0.74, -0.03], s: [0.065, 0.22, 0.05] },
+      { n: 'Patellar & Knee Contour Plate', l: 'Cutis genus', p: [side * 0.085, 0.52, 0.02], s: [0.05, 0.06, 0.04] },
+      { n: 'Crural Anterior Shin Envelope', l: 'Cutis cruris anterior', p: [side * 0.08, 0.32, 0.02], s: [0.045, 0.20, 0.04] },
+      { n: 'Sural Posterior Calf Envelope', l: 'Cutis suralis posterior', p: [side * 0.08, 0.32, -0.025], s: [0.055, 0.20, 0.045] },
+      { n: 'Foot Dorsal & Plantar Envelope', l: 'Cutis pedis', p: [side * 0.08, 0.04, 0.04], s: [0.05, 0.05, 0.11] }
+    ];
+    pairedSkin.forEach(ps => addPiece({ name: ps.n + ' (' + sName + ')', latin: ps.l + ' ' + sLat, systemKey: 'INTEGUMENTARY', subCategory: 'Cutaneous Envelope', geo: geoBox, mat: materials.integumentary, pos: ps.p, scale: ps.s }));
+  });
+
+  console.log('Generated total anatomical pieces:', pieces.length);
+  return { pieces, materials };
+}
