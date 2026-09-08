@@ -304,12 +304,13 @@ class HumanAtlasApp {
     if (!this.engine) return;
     const aspect = this.camera.aspect;
     const isMobile = window.innerWidth < 768;
-    const normalDist = isMobile ? 4.8 : 3.6;
+    const normalDist = isMobile ? 3.8 : 3.6;
 
-    const reservedH = isMobile ? 350 : 270;
-    const availableAspect = Math.max(0.35, (window.innerWidth - (isMobile ? 40 : 340)) / Math.max(160, window.innerHeight - reservedH));
+    const reservedH = isMobile ? 150 : 270;
+    const reservedW = isMobile ? 24 : 340;
+    const availableAspect = Math.max(0.35, (window.innerWidth - reservedW) / Math.max(160, window.innerHeight - reservedH));
     const atlasDist = Math.max(this.engine.packingHeight, this.engine.packingWidth / availableAspect) /
-      (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2))) * (window.innerHeight / Math.max(160, window.innerHeight - reservedH)) * 1.08;
+      (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2))) * (window.innerHeight / Math.max(160, window.innerHeight - reservedH)) * 1.05;
 
     const distance = THREE.MathUtils.lerp(normalDist, Math.max(0.2, atlasDist), extent);
     let activeView = view;
@@ -332,6 +333,7 @@ class HumanAtlasApp {
   initUI() {
     this.renderSystemsList();
     this.bindSystemsControls();
+    this.bindMobileDrawer();
     this.bindCameraControls();
     this.bindExplodeSlider();
     this.bindDetailCard();
@@ -351,6 +353,9 @@ class HumanAtlasApp {
 
     const badge = document.getElementById('systems-count-badge');
     if (badge) badge.textContent = filtered.length;
+
+    const mobileBadge = document.getElementById('mobile-systems-count');
+    if (mobileBadge) mobileBadge.textContent = this.visibleSystems.size;
 
     for (const sys of filtered) {
       const row = document.createElement('div');
@@ -452,6 +457,61 @@ class HumanAtlasApp {
         sound.playTab();
       });
     });
+  }
+
+  bindMobileDrawer() {
+    const toggleBtn = document.getElementById('btn-toggle-systems');
+    const card = document.getElementById('systems-card');
+    const closeBtn = document.getElementById('btn-close-systems');
+    const backdrop = document.getElementById('systems-backdrop');
+
+    const openDrawer = () => {
+      if (card) card.classList.add('open');
+      if (backdrop) backdrop.classList.remove('hidden');
+      sound.playClick();
+    };
+
+    const closeDrawer = () => {
+      if (card) card.classList.remove('open');
+      if (backdrop) backdrop.classList.add('hidden');
+    };
+
+    if (toggleBtn) toggleBtn.addEventListener('click', openDrawer);
+    if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+    if (backdrop) backdrop.addEventListener('click', closeDrawer);
+
+    // Swipe down to dismiss Systems drawer on mobile
+    let touchStartY = 0;
+    if (card) {
+      card.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+
+      card.addEventListener('touchend', (e) => {
+        const touchEndY = e.changedTouches[0].clientY;
+        if (touchEndY - touchStartY > 60 && card.scrollTop <= 5) {
+          closeDrawer();
+        }
+      }, { passive: true });
+    }
+
+    // Swipe down to dismiss Piece Detail card on mobile
+    const detailCard = document.getElementById('piece-detail-card');
+    let detailTouchStartY = 0;
+    if (detailCard) {
+      detailCard.addEventListener('touchstart', (e) => {
+        detailTouchStartY = e.touches[0].clientY;
+      }, { passive: true });
+
+      detailCard.addEventListener('touchend', (e) => {
+        const detailTouchEndY = e.changedTouches[0].clientY;
+        if (detailTouchEndY - detailTouchStartY > 50 && detailCard.scrollTop <= 5) {
+          this.selectedPartId = null;
+          this.isIsolated = false;
+          this.hideDetailCard();
+        }
+      }, { passive: true });
+    }
   }
 
   bindCameraControls() {
@@ -573,8 +633,10 @@ class HumanAtlasApp {
     const dz = this.engine.displacementData[partIdx * 4 + 2];
     const targetPos = new THREE.Vector3(center.x + dx, center.y + dy, center.z + dz);
 
+    const isMobile = window.innerWidth < 768;
     this.controls.target.copy(targetPos);
-    this.camera.position.copy(targetPos).add(new THREE.Vector3(0, 0.05, 0.45));
+    const camOffset = isMobile ? new THREE.Vector3(0, 0.08, 0.58) : new THREE.Vector3(0, 0.05, 0.45);
+    this.camera.position.copy(targetPos).add(camOffset);
     this.controls.update();
   }
 
@@ -763,14 +825,41 @@ class HumanAtlasApp {
       this.canvas.style.cursor = 'grab';
     });
 
-    window.addEventListener('pointerdown', () => {
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+    let pointerStartTime = 0;
+    let isMultiTouch = false;
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 1) {
+        isMultiTouch = true;
+      }
+    }, { passive: true });
+
+    window.addEventListener('pointerdown', (e) => {
       this.canvas.style.cursor = 'grabbing';
+      pointerStartX = e.clientX;
+      pointerStartY = e.clientY;
+      pointerStartTime = performance.now();
+      if (e.pointerType === 'touch' && e.isPrimary === false) {
+        isMultiTouch = true;
+      }
     });
 
     window.addEventListener('pointerup', (e) => {
       this.canvas.style.cursor = 'grab';
-      if (e.target.closest('.glass-card, .glass-pill, .modal-backdrop, header, footer')) return;
+      if (e.target.closest('.glass-card, .glass-pill, .modal-backdrop, .drawer-backdrop, header, footer, button, input')) return;
 
+      const dist = Math.hypot(e.clientX - pointerStartX, e.clientY - pointerStartY);
+      const elapsed = performance.now() - pointerStartTime;
+
+      // If user was dragging to rotate, pan, or pinch-zoom, skip piece selection
+      if (isMultiTouch || dist > 10 || elapsed > 450) {
+        isMultiTouch = false;
+        return;
+      }
+
+      isMultiTouch = false;
       this.handleScenePick(e.clientX, e.clientY);
     });
   }

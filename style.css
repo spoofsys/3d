@@ -32,12 +32,15 @@
 html, body {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
   background-color: var(--bg-studio);
   font-family: var(--font-sans);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #webgl-canvas {
@@ -48,6 +51,15 @@ html, body {
   height: 100%;
   display: block;
   z-index: 1;
+  touch-action: none;
+}
+
+.mobile-only {
+  display: none !important;
+}
+
+.desktop-only {
+  display: inherit;
 }
 
 /* Loading Overlay */
@@ -977,4 +989,320 @@ input:checked + .slider:before {
   padding: 1px 4px;
   font-family: var(--font-mono);
   font-weight: 600;
+}
+
+/* ==========================================================================
+   MOBILE & TOUCH OPTIMIZATION (max-width: 768px)
+   ========================================================================== */
+
+/* Sheet Handle for Bottom Sheets */
+.sheet-handle {
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: #cbd5e1;
+  margin: 0 auto 10px auto;
+  flex-shrink: 0;
+}
+
+/* Mobile Systems Trigger Button */
+.mobile-systems-btn {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-systems-icon {
+  font-size: 0.9rem;
+}
+
+.systems-badge-pill {
+  background: var(--accent-light);
+  color: var(--accent-blue);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+}
+
+.systems-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.systems-card .close-card-btn {
+  position: static;
+  margin-left: 4px;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+@media (hover: none) {
+  #hover-tooltip {
+    display: none !important;
+  }
+}
+
+/* Mobile Drawer Backdrop */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 190;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.drawer-backdrop.hidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: inherit !important;
+  }
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Compact UI Container */
+  #ui-container {
+    padding: 10px 12px;
+  }
+
+  /* Top Navigation Bar */
+  .top-nav {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    align-items: center;
+  }
+
+  .nav-left {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .main-title {
+    font-size: 0.98rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .mobile-systems-btn {
+    display: inline-flex !important;
+  }
+
+  .search-trigger {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+  }
+
+  /* Systems Drawer as a Mobile Bottom Sheet */
+  .systems-card {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    max-height: 68dvh;
+    border-radius: 24px 24px 0 0;
+    padding: 12px 16px max(16px, env(safe-area-inset-bottom, 16px)) 16px;
+    z-index: 210;
+    box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.18);
+    transform: translateY(105%);
+    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .systems-card.open {
+    transform: translateY(0);
+  }
+
+  .systems-list {
+    max-height: calc(68dvh - 120px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Camera Controls as a Sleek Horizontal Pill above the Bottom Bar */
+  .camera-toolbar {
+    position: absolute;
+    right: auto;
+    left: 50%;
+    top: auto;
+    bottom: 68px;
+    transform: translateX(-50%);
+    flex-direction: row;
+    padding: 3px 6px;
+    gap: 4px;
+    z-index: 20;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  }
+
+  .cam-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.78rem;
+  }
+
+  .cam-divider {
+    width: 1px;
+    height: 16px;
+    margin: auto 2px;
+  }
+
+  /* Bottom Floating Explode Anatomy Card */
+  .bottom-card {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom, 10px));
+    width: auto;
+    transform: none;
+    padding: 8px 12px;
+    gap: 8px;
+    border-radius: 16px;
+    z-index: 25;
+  }
+
+  .explode-left {
+    gap: 6px;
+  }
+
+  .explode-title {
+    font-size: 0.8rem;
+  }
+
+  .explode-pct {
+    font-size: 0.76rem;
+    padding: 1px 6px;
+    min-width: 36px;
+  }
+
+  .slider-wrapper {
+    gap: 6px;
+  }
+
+  .custom-explode-slider {
+    height: 8px;
+  }
+
+  .custom-explode-slider::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  .custom-explode-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  .reset-btn {
+    padding: 6px 9px;
+    font-size: 0.75rem;
+    border-radius: 8px;
+  }
+
+  /* Piece Detail Card as a Native Bottom Sheet */
+  .piece-detail-card {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    max-height: 52dvh;
+    border-radius: 22px 22px 0 0;
+    padding: 12px 18px max(18px, env(safe-area-inset-bottom, 18px)) 18px;
+    z-index: 220;
+    box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.2);
+    transform: translateY(0);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  }
+
+  .piece-detail-card.hidden {
+    transform: translateY(105%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .piece-title {
+    font-size: 0.98rem;
+  }
+
+  .piece-latin {
+    font-size: 0.76rem;
+  }
+
+  .detail-section-title {
+    font-size: 0.66rem;
+  }
+
+  .detail-section-text {
+    font-size: 0.74rem;
+  }
+
+  .detail-actions {
+    margin-top: 6px;
+  }
+
+  .btn-action-small {
+    padding: 8px 0;
+    font-size: 0.8rem;
+  }
+
+  /* Search Modal */
+  .modal-backdrop {
+    padding-top: 14px;
+    padding-left: 12px;
+    padding-right: 12px;
+    align-items: flex-start;
+  }
+
+  .search-modal-card {
+    width: 100%;
+    max-height: 82dvh;
+    border-radius: 16px;
+  }
+
+  .search-results-list {
+    max-height: 50dvh;
+  }
+
+  .search-header {
+    padding: 12px 14px;
+  }
+
+  #search-input {
+    font-size: 0.9rem;
+  }
+
+  .search-footer {
+    display: none;
+  }
 }

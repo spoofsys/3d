@@ -65,38 +65,50 @@
     <!-- TOP NAVIGATION BAR -->
     <header class="top-nav">
       <div class="nav-left">
-        <div class="status-pill">
+        <button id="btn-toggle-systems" class="mobile-systems-btn glass-pill mobile-only" aria-label="Toggle Systems Drawer">
+          <span class="mobile-systems-icon">🫀</span>
+          <span class="mobile-systems-text">Systems</span>
+          <span class="systems-badge-pill" id="mobile-systems-count">15</span>
+        </button>
+        <div class="status-pill desktop-only">
           <span class="status-dot"></span>
           <span class="status-text">INTERACTIVE ANATOMY</span>
         </div>
         <div class="title-block">
           <h1 class="main-title">Human Atlas 3D</h1>
-          <p class="sub-title">2,234 modeled pieces · BodyParts3D</p>
+          <p class="sub-title desktop-only">2,234 modeled pieces · BodyParts3D</p>
         </div>
       </div>
 
       <div class="nav-right">
-        <button id="search-trigger-btn" class="search-trigger">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <span>Find a structure...</span>
-          <kbd class="kbd-badge">/</kbd>
+        <button id="search-trigger-btn" class="search-trigger" title="Find a structure">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <span class="search-label desktop-only">Find a structure...</span>
+          <kbd class="kbd-badge desktop-only">/</kbd>
         </button>
       </div>
     </header>
 
-    <!-- LEFT SYSTEMS FLOATING CARD -->
-    <aside class="systems-card glass-card">
+    <!-- MOBILE DRAWER BACKDROP -->
+    <div id="systems-backdrop" class="drawer-backdrop hidden"></div>
+
+    <!-- LEFT SYSTEMS FLOATING CARD / MOBILE BOTTOM SHEET -->
+    <aside class="systems-card glass-card" id="systems-card">
+      <div class="sheet-handle mobile-only"></div>
       <div class="systems-header">
         <div class="systems-title-wrap">
           <span class="systems-title">Systems</span>
-          <span class="systems-badge" id="systems-count-badge">12</span>
+          <span class="systems-badge" id="systems-count-badge">15</span>
         </div>
-        <div class="hide-all-wrap">
-          <span class="hide-all-label">Hide all</span>
-          <label class="switch">
-            <input type="checkbox" id="toggle-hide-all" />
-            <span class="slider round"></span>
-          </label>
+        <div class="systems-header-right">
+          <div class="hide-all-wrap">
+            <span class="hide-all-label">Hide all</span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-hide-all" />
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <button id="btn-close-systems" class="close-card-btn mobile-only" aria-label="Close Systems">✕</button>
         </div>
       </div>
 
@@ -113,8 +125,8 @@
       </div>
     </aside>
 
-    <!-- RIGHT CAMERA VIEW TOOLBAR (Vertical Floating Pill) -->
-    <aside class="camera-toolbar glass-pill">
+    <!-- RIGHT CAMERA VIEW TOOLBAR (Floating Pill) -->
+    <aside class="camera-toolbar glass-pill" id="camera-toolbar">
       <button class="cam-btn" data-view="three-quarter" title="Three-quarter view">¾</button>
       <button class="cam-btn active" data-view="front" title="Front view">F</button>
       <button class="cam-btn" data-view="side" title="Side view">S</button>
@@ -128,8 +140,9 @@
       </button>
     </aside>
 
-    <!-- SELECTED PIECE DETAIL DRAWER / CARD -->
+    <!-- SELECTED PIECE DETAIL DRAWER / BOTTOM SHEET -->
     <div id="piece-detail-card" class="piece-detail-card glass-card hidden">
+      <div class="sheet-handle mobile-only"></div>
       <button class="close-card-btn" id="btn-close-detail" title="Close detail card">✕</button>
       <div class="piece-system-tag" id="detail-system-tag">SKELETON</div>
       <div class="piece-title" id="detail-title">Femur (Right)</div>
@@ -172,22 +185,22 @@
     <!-- BOTTOM FLOATING EXPLODE ANATOMY CARD -->
     <footer class="bottom-card glass-card">
       <div class="explode-left">
-        <span class="explode-title">Explode anatomy</span>
+        <span class="explode-title"><span class="desktop-only">Explode anatomy</span><span class="mobile-only">Explode</span></span>
         <span class="explode-pct" id="explode-pct-badge">0%</span>
       </div>
 
       <div class="slider-wrapper">
-        <span class="slider-boundary-label">Assembled</span>
+        <span class="slider-boundary-label desktop-only">Assembled</span>
         <div class="slider-track-wrap">
-          <input type="range" id="explode-slider" class="custom-explode-slider" min="0" max="100" value="0" />
+          <input type="range" id="explode-slider" class="custom-explode-slider" min="0" max="100" value="0" aria-label="Explode Anatomy Dissection Slider" />
         </div>
-        <span class="slider-boundary-label">Every piece</span>
+        <span class="slider-boundary-label desktop-only">Every piece</span>
       </div>
 
       <div class="explode-right">
-        <button class="reset-btn" id="btn-reset-explode">
+        <button class="reset-btn" id="btn-reset-explode" title="Reset Explosion to 0%">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-          <span>Reset</span>
+          <span class="desktop-only">Reset</span>
         </button>
       </div>
     </footer>
